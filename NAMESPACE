@@ -2,4 +2,5 @@
 
 export(get_climate_zone)
 export(get_season_recommendation)
+export(list_climate_zones)
 importFrom(utils,data)
