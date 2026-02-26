@@ -43,9 +43,8 @@
 
 get_season_recommendation <- function(zone) {
 
-  # Validate input
-  valid_zones <- c("winter_rain", "summer_monsoon", "hyperarid",
-                   "continental", "australian")
+  valid_zones <- c("winter_rain_north", "winter_rain_south", "summer_monsoon",
+                   "hyperarid", "continental", "australian")
 
   if (!is.character(zone) || length(zone) != 1) {
     stop("'zone' must be a single character string.")
@@ -58,24 +57,29 @@ get_season_recommendation <- function(zone) {
     )
   }
 
-  # Period definitions (source: aridRUSLE documentation, Table 2)
   rec <- switch(zone,
 
-                # BSk/BWk (Mediterranean) - January to August
-                # Recommended for winter-rain dominated semi-arid climates (e.g. Chile,
-                # Morocco, Tunisia, S-Iberia). Covers the main rainy season.
-                winter_rain = list(
-                  zone         = "winter_rain",
+                # Northern hemisphere Mediterranean - October to March
+                winter_rain_north = list(
+                  zone         = "winter_rain_north",
+                  label        = "October - March (182 days)",
+                  months       = c(10, 11, 12, 1, 2, 3),
+                  months_label = "Oct, Nov, Dec, Jan, Feb, Mar",
+                  season_days  = 182L,
+                  note         = "Northern hemisphere Mediterranean climate (e.g. Morocco, Tunisia, S-Iberia)."
+                ),
+
+                # Southern hemisphere Mediterranean - January to August
+                winter_rain_south = list(
+                  zone         = "winter_rain_south",
                   label        = "January - August (243 days)",
                   months       = 1:8,
                   months_label = "Jan, Feb, Mar, Apr, May, Jun, Jul, Aug",
                   season_days  = 243L,
-                  note         = ""
+                  note         = "Southern hemisphere Mediterranean climate (e.g. central Chile)."
                 ),
 
                 # BSh (Sahel, India) - June to September
-                # Captures the summer monsoon season. Requires 12 monthly input layers
-                # for the Modified Fournier Index formula.
                 summer_monsoon = list(
                   zone         = "summer_monsoon",
                   label        = "June - September (122 days)",
@@ -86,9 +90,6 @@ get_season_recommendation <- function(zone) {
                 ),
 
                 # BWh/BWk (Desert core) - Full year
-                # Precipitation is highly episodic and not seasonal. The full year is
-                # recommended to avoid missing rare extreme events that may cause the
-                # majority of annual erosivity.
                 hyperarid = list(
                   zone         = "hyperarid",
                   label        = "Full year - January to December (365 days)",
@@ -102,8 +103,6 @@ get_season_recommendation <- function(zone) {
                 ),
 
                 # BSk (Steppe) - April to September
-                # Snow-free season for continental semi-arid climates with cold winters.
-                # Requires 12 monthly input layers.
                 continental = list(
                   zone         = "continental",
                   label        = "April - September (183 days)",
@@ -113,9 +112,7 @@ get_season_recommendation <- function(zone) {
                   note         = "Requires 12 monthly input layers for the R-factor formula."
                 ),
 
-                # Australian semi-arid (Outback) - October to March
-                # Southern hemisphere summer season.
-                # Requires 12 monthly input layers.
+                # Australian semi-arid - October to March
                 australian = list(
                   zone         = "australian",
                   label        = "October - March (182 days)",

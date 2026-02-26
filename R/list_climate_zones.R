@@ -71,29 +71,32 @@
 list_climate_zones <- function() {
 
   zones <- data.frame(
-    zone         = c("winter_rain", "summer_monsoon", "hyperarid",
-                     "continental", "australian"),
-    koppen       = c("Cs (Mediterranean, fallback)",
+    zone         = c("winter_rain_north", "winter_rain_south", "summer_monsoon",
+                     "hyperarid", "continental", "australian"),
+    koppen       = c("Cs (Mediterranean, northern hemisphere)",
+                     "Cs (Mediterranean, southern hemisphere)",
                      "BSh (Sahel, India)",
                      "BWh / BWk (desert core)",
                      "BSk (steppe)",
                      "BSh/BSk/BWh/BWk (Australia)"),
     formula      = c("Bonilla & Vidal (2011)",
+                     "Bonilla & Vidal (2011)",
                      "Modified Fournier Index / Arnoldus (1980)",
                      "Simplified MFI with aridity correction",
                      "Arnoldus formula (1980), steppe adaptation",
                      "Yu & Rosewell adaptation (1996)"),
-    period       = c("January - August (243 days)",
+    period       = c("October - March (182 days)",
+                     "January - August (243 days)",
                      "June - September (122 days)",
                      "Full year - January to December (365 days)",
                      "April - September (183 days)",
                      "October - March (182 days)"),
-    season_days  = c(243L, 122L, 365L, 183L, 182L),
-    input_layers = c(1L, 12L, 1L, 12L, 12L),
+    season_days  = c(182L, 243L, 122L, 365L, 183L, 182L),
+    input_layers = c(1L, 1L, 12L, 1L, 12L, 12L),
     stringsAsFactors = FALSE
   )
 
-  # --- Console output ---
+  # Console output
   message("=================================================================")
   message("aridRUSLE - Available Climate Zones")
   message("=================================================================")

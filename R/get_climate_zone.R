@@ -23,7 +23,7 @@
 
 .map_koppen_to_zone <- function(koppen_code, lat, lon) {
 
-  # Australian semi-arid: any BS class located on the Australian continent
+  # Australian semi-arid: any BS/BW class located on the Australian continent
   if (koppen_code %in% c("BSh", "BSk", "BWh", "BWk") &&
       lat < -15 && lat > -45 &&
       lon > 113 && lon < 155) {
@@ -36,23 +36,24 @@
   }
 
   # Summer monsoon: BSh (hot steppe) outside Australia
-  # Covers Sahel, Indian subcontinent, NW Mexico (Peel et al. 2007)
   if (koppen_code == "BSh") {
     return("summer_monsoon")
   }
 
   # Continental semi-arid: BSk (cold steppe) outside Australia
-  # Covers Central Asia, Mongolia, Patagonia, Anatolia (Peel et al. 2007)
   if (koppen_code == "BSk") {
     return("continental")
   }
 
-  # Fallback: winter rain
-  # Covers Mediterranean, S-Iberia, Chile, N-African coast
-  return("winter_rain")
+  # Fallback: winter rain, split by hemisphere
+  # Northern hemisphere (e.g. Morocco, Tunisia, S-Iberia): October - March
+  # Southern hemisphere (e.g. Chile): January - August
+  if (lat >= 0) {
+    return("winter_rain_north")
+  } else {
+    return("winter_rain_south")
+  }
 }
-
-
 
 # Exported main function
 
