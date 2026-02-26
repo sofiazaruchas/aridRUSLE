@@ -23,16 +23,16 @@
 
 .map_koppen_to_zone <- function(koppen_code, lat, lon) {
 
-  # Hyper-arid: BW = true desert (hot BWh or cold BWk)
-  if (koppen_code %in% c("BWh", "BWk")) {
-    return("hyperarid")
-  }
-
   # Australian semi-arid: any BS class located on the Australian continent
-  if (koppen_code %in% c("BSh", "BSk") &&
+  if (koppen_code %in% c("BSh", "BSk", "BWh", "BWk") &&
       lat < -15 && lat > -45 &&
       lon > 113 && lon < 155) {
     return("australian")
+  }
+
+  # Hyper-arid: BW = true desert (hot BWh or cold BWk)
+  if (koppen_code %in% c("BWh", "BWk")) {
+    return("hyperarid")
   }
 
   # Summer monsoon: BSh (hot steppe) outside Australia
