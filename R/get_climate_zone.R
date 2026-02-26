@@ -89,6 +89,8 @@
 #'
 #' @export
 #'
+#' @importFrom utils data
+#'
 #' @examples
 #' get_climate_zone(lat = -29.9, lon = -70.8)   # Chile         -> winter_rain
 #' get_climate_zone(lat =  13.5, lon =   2.1)   # Sahel         -> summer_monsoon
@@ -108,10 +110,16 @@ get_climate_zone <- function(lat, lon, verbose = TRUE) {
   if (lon < -180 || lon > 180)
     stop("'lon' must be between -180 and 180.")
 
-  # Koeppen-Geiger lookup via kgc package
+
   # RoundCoordinates() snaps coordinates to the nearest 0.5-degree grid point
   # LookupCZ() returns the Koeppen-Geiger code for that grid point
-  pt <- data.frame(
+  # Workaround: kgc::LookupCZ() requires climatezones to be loaded
+  if (!exists("climatezones")) {
+    data("climatezones", package = "kgc", envir = globalenv())
+  }
+
+  # Koeppen-Geiger lookup via kgc package
+   pt <- data.frame(
     Site          = "study_area",
     Longitude     = lon,
     Latitude      = lat,
@@ -137,7 +145,7 @@ get_climate_zone <- function(lat, lon, verbose = TRUE) {
 
   #  Console output
   if (verbose) {
-    message("─────────────────────────────────────────")
+    message("-----------------------------------------")
     message("Detected zone      : ", zone)
     message("Koeppen-Geiger code: ", koppen_code, " (Peel et al. 2007, via kgc)")
     message("Recommended period : ", rec$label, " (", rec$season_days, " days)")
@@ -145,7 +153,7 @@ get_climate_zone <- function(lat, lon, verbose = TRUE) {
     if (!is.null(rec$note) && nchar(rec$note) > 0) {
       message("Note               : ", rec$note)
     }
-    message("─────────────────────────────────────────")
+    message("-----------------------------------------")
   }
 
   return(zone)
