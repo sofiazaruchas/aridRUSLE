@@ -66,29 +66,31 @@ apply_water_mask <- function(target_raster, ndwi_raster, threshold = 0.3) {
     stop("'ndwi_raster' must be a single-layer SpatRaster.")
 
   # Geometry alignment
+
   # Resample ndwi_raster to match target_raster if geometries differ
-  same_geom <- (
-    terra::compareGeom(target_raster, ndwi_raster,
-                       res = TRUE, stopOnError = FALSE)
+  same_geom <- isTRUE(
+    tryCatch(
+      terra::compareGeom(target_raster, ndwi_raster,
+                         res = TRUE, stopOnError = TRUE),
+      error = function(e) FALSE
+    )
   )
 
-  if (!isTRUE(same_geom)) {
+  if (!same_geom) {
     message("Geometry mismatch detected: resampling 'ndwi_raster' to match ",
             "'target_raster'.")
-    ndwi_raster <- terra::resample(ndwi_raster, target_raster,
-                                   method = "near")
+    ndwi_raster <- terra::resample(ndwi_raster, target_raster, method = "near")
   }
 
-  # Water mask
-
-  # Build binary water mask: 1 = water (NDWI >= threshold), NA = land
+  #  Water mask
+  # Build binary water mask: NA = water (NDWI >= threshold), 1 = land
   water_mask <- terra::ifel(ndwi_raster >= threshold, NA, 1)
 
   # Apply mask to all layers of target_raster
   result <- target_raster * water_mask
 
   # Preserve layer names from input
-  terra::names(result) <- terra::names(target_raster)
+  names(result) <- names(target_raster)
 
   return(result)
 }
