@@ -34,7 +34,8 @@ Also used internally by \code{get_climate_zone()} and
 \code{calc_r_factor()}.
 }
 \examples{
-get_season_recommendation("winter_rain")
+get_season_recommendation("winter_rain_north")
+get_season_recommendation("winter_rain_south")
 get_season_recommendation("summer_monsoon")
 get_season_recommendation("hyperarid")
 get_season_recommendation("continental")
