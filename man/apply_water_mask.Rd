@@ -4,7 +4,7 @@
 \alias{apply_water_mask}
 \title{Mask water pixels using an NDWI threshold}
 \usage{
-apply_water_mask(target_raster, ndwi_raster, threshold = 0.3)
+apply_water_mask(target_raster, ndwi_raster, threshold = 0.3, plot = FALSE)
 }
 \arguments{
 \item{target_raster}{SpatRaster. The raster to be masked (e.g. NDVI
@@ -16,6 +16,11 @@ Pixels with NDWI >= \code{threshold} are classified as water.}
 \item{threshold}{Numeric. NDWI threshold above which pixels are classified
 as water and set to \code{NA} in the output. Default: \code{0.3}
 (McFeeters 1996).}
+
+\item{plot}{Logical. If \code{TRUE}, displays the masked raster (first
+layer) with water pixels shown in light blue. Useful for visually
+inspecting the mask and adjusting \code{threshold} if needed.
+Default: \code{FALSE}.}
 }
 \value{
 SpatRaster with the same dimensions and CRS as \code{target_raster}.
@@ -31,6 +36,10 @@ If \code{target_raster} and \code{ndwi_raster} do not share the same
 geometry (extent, resolution, CRS), \code{ndwi_raster} is automatically
 resampled to match \code{target_raster} using nearest-neighbour
 interpolation before masking.
+
+Setting \code{plot = TRUE} displays the masked result so the user can
+visually inspect the water mask and adjust \code{threshold} if needed
+before proceeding to \code{calc_c_factor()}.
 }
 \examples{
 \dontrun{
@@ -40,8 +49,11 @@ ndwi <- terra::rast("s2_ndwi.tif")
 # Mask water pixels with default threshold (0.3)
 ndvi_masked <- apply_water_mask(ndvi, ndwi)
 
-# Use a stricter threshold
-ndvi_masked <- apply_water_mask(ndvi, ndwi, threshold = 0.1)
+# Inspect the result visually before proceeding
+ndvi_masked <- apply_water_mask(ndvi, ndwi, threshold = 0.3, plot = TRUE)
+
+# Adjust threshold if the mask looks wrong, then rerun
+ndvi_masked <- apply_water_mask(ndvi, ndwi, threshold = 0.1, plot = TRUE)
 }
 }
 \references{

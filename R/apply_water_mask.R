@@ -8,7 +8,6 @@
 #
 # Requires: terra (>= 1.7-0)
 
-
 #' Mask water pixels using an NDWI threshold
 #'
 #' Masks water pixels in a target raster (typically an NDVI composite) based
@@ -20,6 +19,10 @@
 #' resampled to match \code{target_raster} using nearest-neighbour
 #' interpolation before masking.
 #'
+#' Setting \code{plot = TRUE} displays the masked result so the user can
+#' visually inspect the water mask and adjust \code{threshold} if needed
+#' before proceeding to \code{calc_c_factor()}.
+#'
 #' @param target_raster SpatRaster. The raster to be masked (e.g. NDVI
 #'   composite). All layers are masked simultaneously.
 #' @param ndwi_raster SpatRaster. Single-layer raster with NDWI values.
@@ -27,6 +30,10 @@
 #' @param threshold Numeric. NDWI threshold above which pixels are classified
 #'   as water and set to \code{NA} in the output. Default: \code{0.3}
 #'   (McFeeters 1996).
+#' @param plot Logical. If \code{TRUE}, displays the masked raster (first
+#'   layer) with water pixels shown in light blue. Useful for visually
+#'   inspecting the mask and adjusting \code{threshold} if needed.
+#'   Default: \code{FALSE}.
 #'
 #' @return SpatRaster with the same dimensions and CRS as \code{target_raster}.
 #'   Water pixels are set to \code{NA}, all other pixels are unchanged.
@@ -46,11 +53,15 @@
 #' # Mask water pixels with default threshold (0.3)
 #' ndvi_masked <- apply_water_mask(ndvi, ndwi)
 #'
-#' # Use a stricter threshold
-#' ndvi_masked <- apply_water_mask(ndvi, ndwi, threshold = 0.1)
+#' # Inspect the result visually before proceeding
+#' ndvi_masked <- apply_water_mask(ndvi, ndwi, threshold = 0.3, plot = TRUE)
+#'
+#' # Adjust threshold if the mask looks wrong, then rerun
+#' ndvi_masked <- apply_water_mask(ndvi, ndwi, threshold = 0.1, plot = TRUE)
 #' }
 
-apply_water_mask <- function(target_raster, ndwi_raster, threshold = 0.3) {
+apply_water_mask <- function(target_raster, ndwi_raster, threshold = 0.3,
+                             plot = FALSE) {
 
   # Input validation
 
@@ -64,10 +75,11 @@ apply_water_mask <- function(target_raster, ndwi_raster, threshold = 0.3) {
     stop("'threshold' must be between -1 and 1 (valid NDWI range).")
   if (terra::nlyr(ndwi_raster) != 1)
     stop("'ndwi_raster' must be a single-layer SpatRaster.")
+  if (!is.logical(plot) || length(plot) != 1)
+    stop("'plot' must be a single logical value (TRUE or FALSE).")
 
   # Geometry alignment
 
-  # Resample ndwi_raster to match target_raster if geometries differ
   same_geom <- isTRUE(
     tryCatch(
       terra::compareGeom(target_raster, ndwi_raster,
@@ -83,6 +95,7 @@ apply_water_mask <- function(target_raster, ndwi_raster, threshold = 0.3) {
   }
 
   #  Water mask
+
   # Build binary water mask: NA = water (NDWI >= threshold), 1 = land
   water_mask <- terra::ifel(ndwi_raster >= threshold, NA, 1)
 
@@ -92,5 +105,37 @@ apply_water_mask <- function(target_raster, ndwi_raster, threshold = 0.3) {
   # Preserve layer names from input
   names(result) <- names(target_raster)
 
-  return(result)
+  # Print message
+  message("Adjust 'threshold' and rerun ",
+          "if the mask does not look correct.")
+
+  # Optional plot
+  if (plot) {
+    binary <- terra::ifel(is.na(result[[1]]), NA, 1)
+
+    terra::plot(
+      binary,
+      main       = paste0("Water Mask | NDWI threshold = ", threshold),
+      col        = "yellow",
+      background = "steelblue",
+      legend     = FALSE,
+      axes       = TRUE,
+      mar        = c(3, 3, 3, 8)
+    )                          # <- hier fehlte die schliessende Klammer
+
+    graphics::par(xpd = TRUE)
+
+    graphics::legend(
+      x      = "topright",
+      legend = c("Land", "Water"),
+      fill   = c("yellow", "steelblue"),
+      border = "white",
+      bty    = "n",
+      inset  = c(-0.15, 0)
+    )                          # <- hier fehlte die schliessende Klammer
+
+    graphics::par(xpd = FALSE)
+  }
+  return(invisible(result))
+
 }
