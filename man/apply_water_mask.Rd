@@ -4,18 +4,36 @@
 \alias{apply_water_mask}
 \title{Mask water pixels using an NDWI threshold}
 \usage{
-apply_water_mask(target_raster, ndwi_raster, threshold = 0.3, plot = FALSE)
+apply_water_mask(
+  target_raster,
+  satellite_raster,
+  green_band = 3,
+  nir_band = 8,
+  threshold = 0.3,
+  return_ndwi = FALSE,
+  plot = FALSE
+)
 }
 \arguments{
 \item{target_raster}{SpatRaster. The raster to be masked (e.g. NDVI
 composite). All layers are masked simultaneously.}
 
-\item{ndwi_raster}{SpatRaster. Single-layer raster with NDWI values.
-Pixels with NDWI >= \code{threshold} are classified as water.}
+\item{satellite_raster}{SpatRaster. Multi-band satellite image containing
+at least the green and NIR bands. Used to compute NDWI internally.}
+
+\item{green_band}{Integer. Band index of the green band in
+\code{satellite_raster}. Default: \code{3} (Sentinel-2 Band 3).}
+
+\item{nir_band}{Integer. Band index of the NIR band in
+\code{satellite_raster}. Default: \code{8} (Sentinel-2 Band 8).}
 
 \item{threshold}{Numeric. NDWI threshold above which pixels are classified
 as water and set to \code{NA} in the output. Default: \code{0.3}
 (McFeeters 1996).}
+
+\item{return_ndwi}{Logical. If \code{TRUE}, the internally computed NDWI
+raster is stored as an attribute (\code{attr(result, "ndwi")}) on the
+returned object. Default: \code{FALSE}.}
 
 \item{plot}{Logical. If \code{TRUE}, displays the masked raster (first
 layer) with water pixels shown in light blue. Useful for visually
@@ -25,15 +43,25 @@ Default: \code{FALSE}.}
 \value{
 SpatRaster with the same dimensions and CRS as \code{target_raster}.
 Water pixels are set to \code{NA}, all other pixels are unchanged.
+If \code{return_ndwi = TRUE}, the computed NDWI raster is accessible via
+\code{attr(result, "ndwi")}.
 }
 \description{
 Masks water pixels in a target raster (typically an NDVI composite) based
-on NDWI values. Required preprocessing step before \code{calc_c_factor()},
-as open water surfaces produce misleading NDVI values.
+on NDWI values computed internally from a multi-band satellite image.
+Required preprocessing step before \code{calc_c_factor()}, as open water
+surfaces produce misleading NDVI values.
 }
 \details{
-If \code{target_raster} and \code{ndwi_raster} do not share the same
-geometry (extent, resolution, CRS), \code{ndwi_raster} is automatically
+The NDWI is calculated as:
+\deqn{NDWI = \frac{Green - NIR}{Green + NIR}}{NDWI = (Green - NIR) / (Green + NIR)}
+
+Band indices default to Sentinel-2 band numbering (\code{green_band = 3},
+\code{nir_band = 8}). Adjust these if using a different sensor or
+band ordering.
+
+If \code{target_raster} and \code{satellite_raster} do not share the same
+geometry (extent, resolution, CRS), \code{satellite_raster} is automatically
 resampled to match \code{target_raster} using nearest-neighbour
 interpolation before masking.
 
@@ -44,16 +72,20 @@ before proceeding to \code{calc_c_factor()}.
 \examples{
 \dontrun{
 ndvi <- terra::rast("s2_ndvi.tif")
-ndwi <- terra::rast("s2_ndwi.tif")
+s2   <- terra::rast("s2_bands.tif")  # multi-band Sentinel-2 image
 
-# Mask water pixels with default threshold (0.3)
-ndvi_masked <- apply_water_mask(ndvi, ndwi)
+# Mask water pixels with default threshold and Sentinel-2 band indices
+ndvi_masked <- apply_water_mask(ndvi, s2)
 
 # Inspect the result visually before proceeding
-ndvi_masked <- apply_water_mask(ndvi, ndwi, threshold = 0.3, plot = TRUE)
+ndvi_masked <- apply_water_mask(ndvi, s2, threshold = 0.3, plot = TRUE)
 
-# Adjust threshold if the mask looks wrong, then rerun
-ndvi_masked <- apply_water_mask(ndvi, ndwi, threshold = 0.1, plot = TRUE)
+# Retrieve the internally computed NDWI raster
+ndvi_masked <- apply_water_mask(ndvi, s2, return_ndwi = TRUE)
+ndwi        <- attr(ndvi_masked, "ndwi")
+
+# Custom band indices (e.g. different sensor or band ordering)
+ndvi_masked <- apply_water_mask(ndvi, s2, green_band = 2, nir_band = 4)
 }
 }
 \references{

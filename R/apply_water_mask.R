@@ -121,7 +121,7 @@ apply_water_mask <- function(target_raster, ndwi_raster, threshold = 0.3,
       legend     = FALSE,
       axes       = TRUE,
       mar        = c(3, 3, 3, 8)
-    )                          # <- hier fehlte die schliessende Klammer
+    )
 
     graphics::par(xpd = TRUE)
 
@@ -132,7 +132,7 @@ apply_water_mask <- function(target_raster, ndwi_raster, threshold = 0.3,
       border = "white",
       bty    = "n",
       inset  = c(-0.15, 0)
-    )                          # <- hier fehlte die schliessende Klammer
+    )
 
     graphics::par(xpd = FALSE)
   }

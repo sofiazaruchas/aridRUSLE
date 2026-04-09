@@ -16,6 +16,7 @@ test_that("invalid coordinates throw errors", {
 
 #  New Tests
 
+
 test_that("error messages are informative", {
   expect_error(get_season_recommendation(1),         "'zone' must be a single character string")
   expect_error(get_season_recommendation("tropics"),  "must be one of")
