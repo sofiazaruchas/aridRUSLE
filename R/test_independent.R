@@ -1,6 +1,0 @@
-library(aridRUSLE)
-?apply_water_mask()
-setwd("C:/Users/Sofia Zaruchas/OneDrive/Desktop/EAGLE/r_abgabe/test_data")
-target_raster <- rast("ndvi_composite.tif")
-satelite_raster <- rast("sentinel_false_colour.tiff")
-apply_water_mask(target_raster, satelite_raster, green_band = 3, nir_band = 1, threshold = 0.3, return_ndwi = TRUE, plot = TRUE)
