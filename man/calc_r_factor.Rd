@@ -12,13 +12,14 @@ calc_r_factor(
   season_days = 243,
   a = 0.171,
   b = 1.212,
-  verbose = TRUE
+  verbose = TRUE,
+  plot = TRUE
 )
 }
 \arguments{
 \item{precip_raster}{SpatRaster. Either 1 layer (cumulative seasonal
-precipitation in mm) or 12 layers (monthly, Jan–Dec). The required number
-of layers depends on the climate zone — the function throws an informative
+precipitation in mm) or 12 layers (monthly, Jan to Dec). The required number
+of layers depends on the climate zone. The function throws an informative
 error if the wrong count is supplied.}
 
 \item{lat}{Numeric. Latitude of the study area (decimal degrees). Required
@@ -33,7 +34,7 @@ detected from lat/lon.}
 
 \item{season_days}{Numeric. Length of the precipitation season in days.
 Only used for winter_rain_north / winter_rain_south (Bonilla & Vidal).
-Default: 243 (Southern Hemisphere, Jan–Aug). Northern Hemisphere: 182.}
+Default: 243 (Southern Hemisphere, Jan to Aug). Northern Hemisphere: 182.}
 
 \item{a}{Numeric. Coefficient a for Bonilla & Vidal (2011).
 Only used for winter_rain_*. Default: 0.171.}
@@ -43,6 +44,9 @@ Only used for winter_rain_*. Default: 1.212.}
 
 \item{verbose}{Logical. If TRUE, prints the detected zone, formula, parameters
 and recommended data period to the console. Default: TRUE.}
+
+\item{plot}{Logical. If TRUE, displays a map of the R-factor after
+computation. Default: TRUE.}
 }
 \value{
 SpatRaster with one layer of R-factor values. The attribute
@@ -62,6 +66,9 @@ coordinates via get_climate_zone(), or can be set manually.
   # Manual zone override (skips get_climate_zone())
   r <- calc_r_factor(precip, climate_zone = "winter_rain_south",
                      season_days = 243)
+
+  # Without plot
+  r <- calc_r_factor(precip, lat = -33.0, lon = -71.0, plot = FALSE)
 }
 
 }

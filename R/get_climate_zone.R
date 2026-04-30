@@ -120,7 +120,7 @@ get_climate_zone <- function(lat, lon, verbose = TRUE) {
   }
 
   # Koeppen-Geiger lookup via kgc package
-   pt <- data.frame(
+  pt <- data.frame(
     Site          = "study_area",
     Longitude     = lon,
     Latitude      = lat,
@@ -159,5 +159,3 @@ get_climate_zone <- function(lat, lon, verbose = TRUE) {
 
   return(zone)
 }
-
-

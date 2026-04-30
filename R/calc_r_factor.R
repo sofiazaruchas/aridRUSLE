@@ -24,6 +24,8 @@
 #'   Only used for winter_rain_*. Default: 1.212.
 #' @param verbose Logical. If TRUE, prints the detected zone, formula, parameters
 #'   and recommended data period to the console. Default: TRUE.
+#' @param plot Logical. If TRUE, displays a map of the R-factor after
+#'   computation. Default: TRUE.
 #'
 #' @return SpatRaster with one layer of R-factor values. The attribute
 #'   attr(result, "r_factor_meta") contains a list with: zone, formula_name,
@@ -45,6 +47,9 @@
 #'   # Manual zone override (skips get_climate_zone())
 #'   r <- calc_r_factor(precip, climate_zone = "winter_rain_south",
 #'                      season_days = 243)
+#'
+#'   # Without plot
+#'   r <- calc_r_factor(precip, lat = -33.0, lon = -71.0, plot = FALSE)
 #' }
 #'
 #' @export
@@ -55,9 +60,11 @@ calc_r_factor <- function(precip_raster,
                           season_days  = 243,
                           a            = 0.171,
                           b            = 1.212,
-                          verbose      = TRUE) {
+                          verbose      = TRUE,
+                          plot         = TRUE) {
 
   # 0. Input validation
+
   if (!inherits(precip_raster, "SpatRaster")) {
     stop("'precip_raster' must be a terra::SpatRaster object.")
   }
@@ -121,7 +128,7 @@ calc_r_factor <- function(precip_raster,
 
   r_raster <- switch(zone,
 
-                     # --- Bonilla & Vidal (2011) ---
+                     # Bonilla & Vidal (2011)
                      # R = a * P^b * (season_days / 365)
                      "winter_rain_north" = ,
                      "winter_rain_south" = {
@@ -136,7 +143,7 @@ calc_r_factor <- function(precip_raster,
                        })
                      },
 
-                     #  Simplified MFI with aridity correction
+                     # Simplified MFI with aridity correction
                      # R = 0.085 * P^1.350
                      "hyperarid" = {
                        terra::app(precip_raster, function(P) {
@@ -144,7 +151,7 @@ calc_r_factor <- function(precip_raster,
                        })
                      },
 
-                     #  Modified Fournier Index / Arnoldus (1980)
+                     # Modified Fournier Index / Arnoldus (1980)
                      # MFI = sum(pi^2 / P_ann)
                      # R   = 0.739 * MFI^1.847
                      "summer_monsoon" = {
@@ -156,7 +163,7 @@ calc_r_factor <- function(precip_raster,
                        })
                      },
 
-                     #  Arnoldus (1980), steppe adaptation
+                     # Arnoldus (1980), steppe adaptation
                      # MFI = sum(pi^2 / P_ann)
                      # R   = 4.17 * MFI - 152  (negative values clamped to 0)
                      "continental" = {
@@ -169,7 +176,7 @@ calc_r_factor <- function(precip_raster,
                        })
                      },
 
-                     #  Yu & Rosewell (1996)
+                     # Yu & Rosewell (1996)
                      # R = sum_i [ 1.735 * 10^(1.5 * log10(pi^2 / P_ann) - 0.8188) ]
                      "australian" = {
                        terra::app(precip_raster, function(p_months) {
@@ -181,12 +188,13 @@ calc_r_factor <- function(precip_raster,
                      }
   )
 
-  #  4. Attach metadata
+  # 4. Attach metadata
+
   meta <- list(
-    zone                 = zone,
-    formula_name         = .r_formula_name(zone),
+    zone                  = zone,
+    formula_name          = .r_formula_name(zone),
     season_recommendation = rec$label,
-    params               = list(
+    params                = list(
       a           = if (zone %in% c("winter_rain_north", "winter_rain_south")) a else NULL,
       b           = if (zone %in% c("winter_rain_north", "winter_rain_south")) b else NULL,
       season_days = if (zone %in% c("winter_rain_north", "winter_rain_south")) season_days else NULL
@@ -204,11 +212,32 @@ calc_r_factor <- function(precip_raster,
     ))
   }
 
-  return(r_raster)
+  #  5. Plot
+
+  if (plot) {
+    r_stats <- terra::global(r_raster, c("min", "mean", "max"), na.rm = TRUE)
+
+    terra::plot(
+      r_raster,
+      main   = paste0("R-Factor | ", .r_formula_name(zone)),
+      sub    = paste0("Zone: ", zone,
+                      "  |  min: ", round(r_stats$min, 1),
+                      "  mean: ", round(r_stats$mean, 1),
+                      "  max: ", round(r_stats$max, 1),
+                      "  (MJ mm ha-1 h-1 yr-1)"),
+      col    = grDevices::hcl.colors(100, palette = "Blues", rev = TRUE),
+      colNA  = "lightgrey",
+      axes   = TRUE,
+      legend = TRUE,
+      mar    = c(3, 3, 3, 8)
+    )
+  }
+
+  return(invisible(r_raster))
 }
 
 
-#  Internal helper: formula name per zone
+# Internal helper: formula name per zone
 
 .r_formula_name <- function(zone) {
   switch(zone,
