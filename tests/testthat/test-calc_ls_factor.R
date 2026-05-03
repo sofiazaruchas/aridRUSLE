@@ -245,7 +245,9 @@ test_that("plot = FALSE runs without error", {
 
 test_that("plot = TRUE runs without error", {
   r <- make_sloped_dem()
+  pdf(NULL)
   expect_no_error(
     calc_ls_factor(r, verbose = FALSE, plot = TRUE)
   )
+  dev.off()
 })

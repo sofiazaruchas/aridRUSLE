@@ -17,7 +17,7 @@ make_satellite <- function(green_vals, nir_vals, nrow = 3, ncol = 3) {
 
 
 
-# Input validation ------------------------------------------------------------
+# Input validation
 
 test_that("non-SpatRaster target_raster throws error", {
   s2 <- make_satellite(rep(0.1, 9), rep(0.05, 9))
@@ -112,7 +112,7 @@ test_that("vector plot argument throws error", {
 
 
 
-# Return type and structure ---------------------------------------------------
+# Return type and structure
 
 test_that("result is a SpatRaster", {
   ndvi   <- make_raster(rep(0.5, 9))
@@ -159,6 +159,8 @@ test_that("result is returned invisibly", {
 test_that("result is returned invisibly also when plot = TRUE", {
   ndvi <- make_raster(rep(0.5, 9))
   s2   <- make_satellite(rep(0.1, 9), rep(0.05, 9))
+  pdf(NULL)
+  on.exit(dev.off(), add = TRUE)
   out  <- withVisible(apply_water_mask(ndvi, s2, green_band = 1, nir_band = 2,
                                        plot = TRUE))
   expect_false(out$visible)
@@ -166,7 +168,7 @@ test_that("result is returned invisibly also when plot = TRUE", {
 
 
 
-# NDWI computation ------------------------------------------------------------
+# NDWI computation
 
 test_that("NDWI is computed correctly from green and NIR bands", {
   # green = 0.2, nir = 0.1 -> NDWI = (0.2 - 0.1) / (0.2 + 0.1) = 0.333...
@@ -209,7 +211,7 @@ test_that("NDWI masking logic is correct for mixed pixels", {
 
 
 
-# Masking logic ---------------------------------------------------------------
+# Masking logic
 
 test_that("all land pixels are unchanged", {
   # All NDWI < 0.3 (nir > green)
@@ -272,7 +274,7 @@ test_that("custom threshold is respected", {
 
 
 
-# return_ndwi attribute -------------------------------------------------------
+# return_ndwi attribute
 
 test_that("return_ndwi = FALSE: no ndwi attribute on result", {
   ndvi   <- make_raster(rep(0.5, 9))
@@ -314,7 +316,7 @@ test_that("return_ndwi = TRUE: stored NDWI values are correct", {
 
 
 
-# Geometry alignment (resample) -----------------------------------------------
+# Geometry alignment (resample)
 
 test_that("satellite_raster with different resolution is resampled without error", {
   ndvi <- terra::rast(nrows = 4, ncols = 4,
@@ -371,7 +373,7 @@ test_that("geometry mismatch triggers a message about resampling", {
 
 
 
-# plot parameter --------------------------------------------------------------
+# plot parameter
 
 test_that("plot = FALSE still emits a message about band indices", {
   ndvi <- make_raster(rep(0.5, 9))
@@ -384,6 +386,8 @@ test_that("plot = FALSE still emits a message about band indices", {
 test_that("plot = TRUE runs without error or warning", {
   ndvi <- make_raster(rep(0.5, 9))
   s2   <- make_satellite(rep(0.1, 9), rep(0.05, 9))
+  pdf(NULL)
+  on.exit(dev.off(), add = TRUE)
   expect_no_warning(apply_water_mask(ndvi, s2, green_band = 1, nir_band = 2,
                                      plot = TRUE))
 })
@@ -391,6 +395,8 @@ test_that("plot = TRUE runs without error or warning", {
 test_that("plot = TRUE emits a message about band indices", {
   ndvi <- make_raster(rep(0.5, 9))
   s2   <- make_satellite(rep(0.1, 9), rep(0.05, 9))
+  pdf(NULL)
+  on.exit(dev.off(), add = TRUE)
   expect_message(apply_water_mask(ndvi, s2, green_band = 1, nir_band = 2,
                                   plot = TRUE),
                  "NDWI computed from bands")
@@ -403,6 +409,8 @@ test_that("plot = TRUE still returns correct masked values", {
   nir_vals   <- c(0.1, 0.4, rep(0.4, 7))
   ndvi       <- make_raster(rep(0.6, 9))
   s2         <- make_satellite(green_vals, nir_vals)
+  pdf(NULL)
+  on.exit(dev.off(), add = TRUE)
   result     <- apply_water_mask(ndvi, s2, green_band = 1, nir_band = 2,
                                  threshold = 0.3, plot = TRUE)
   vals <- as.vector(terra::values(result))
