@@ -2,8 +2,6 @@
 #'
 #' Computes the RUSLE LS-factor (slope length x slope steepness) from a
 #' digital elevation model (DEM) using the Moore & Burch (1986) approach.
-#' The DEM must be in a projected coordinate reference system with metres
-#' as the unit (e.g. UTM).
 #'
 #' The LS-factor is calculated as:
 #' \deqn{LS = \left(\frac{A}{22.13}\right)^{0.4} \cdot \left(\frac{\sin(\beta)}{0.0896}\right)^{1.3}}{LS = (A / 22.13)^0.4 * (sin(beta) / 0.0896)^1.3}
@@ -11,17 +9,20 @@
 #' where \eqn{A} is the cell size in metres and \eqn{\beta} is the slope
 #' in radians.
 #'
+#' If the DEM is in a geographic CRS (degrees), it is automatically
+#' reprojected to the appropriate UTM zone before computation.
+#'
 #' @param dem SpatRaster. Digital elevation model with elevation values in
-#'   metres. Must be in a projected CRS with metres as the unit (e.g. UTM).
-#'   A geographic CRS (degrees) will trigger an error.
+#'   metres. If in a geographic CRS (degrees), it is automatically reprojected
+#'   to the appropriate UTM zone. A missing CRS will trigger an error.
 #' @param verbose Logical. If TRUE, prints a summary of the computed LS-factor
-#'   (min, mean, max) to the console. Default: TRUE.
+#'   (min, mean, max) and the cell size used to the console. Default: TRUE.
 #' @param plot Logical. If TRUE, displays a map of the LS-factor after
 #'   computation. Default: TRUE.
 #'
-#' #' @return SpatRaster with one layer of LS-factor values (dimensionless,
-#'   >= 0), with the same extent, resolution and CRS as \code{dem}.
-#'   The layer is named \code{"LS_factor"}.
+#' @return SpatRaster with one layer of LS-factor values (dimensionless,
+#'   values clamped to 0 or above), with the same extent and CRS as the
+#'   (possibly reprojected) input DEM. The layer is named \code{"LS_factor"}.
 #'
 #' @references
 #' Moore, I.D., & Burch, G.J. (1986). Physical basis of the length-slope
@@ -32,7 +33,7 @@
 #'
 #' @examples
 #' \dontrun{
-#'   dem <- terra::rast("srtm_utm.tif")
+#'   dem <- terra::rast("srtm.tif")
 #'   ls  <- calc_ls_factor(dem)
 #'
 #'   # Without plot
@@ -44,6 +45,7 @@ calc_ls_factor <- function(dem,
                            plot    = TRUE) {
 
   # 0. Input validation
+
   if (!inherits(dem, "SpatRaster")) {
     stop("'dem' must be a terra::SpatRaster object.")
   }
@@ -55,45 +57,54 @@ calc_ls_factor <- function(dem,
     ))
   }
 
-  # Check for projected CRS (metres required for cell size calculation)
-  crs_wkt <- terra::crs(dem)
-
-  if (nchar(crs_wkt) == 0) {
+  if (nchar(terra::crs(dem)) == 0) {
     stop(
-      "'dem' has no CRS defined. Set a projected CRS with metres as the unit ",
-      "(e.g. UTM) using terra::set.crs() or terra::project()."
+      "'dem' has no CRS defined. Set a CRS using terra::set.crs() before ",
+      "calling calc_ls_factor()."
     )
   }
 
-  is_geographic <- isTRUE(terra::is.lonlat(dem))
+  # 1. CRS check and automatic reprojection to UTM
 
-  if (is_geographic) {
-    stop(
-      "'dem' must be in a projected CRS with metres as the unit (e.g. UTM). ",
-      "Reproject with terra::project() before calling calc_ls_factor()."
-    )
+  if (isTRUE(terra::is.lonlat(dem))) {
+    ext        <- terra::ext(dem)
+    lon_c      <- (ext$xmin + ext$xmax) / 2
+    lat_c      <- (ext$ymin + ext$ymax) / 2
+    zone       <- floor((lon_c + 180) / 6) + 1
+    hemisphere <- if (lat_c >= 0) "north" else "south"
+    epsg       <- if (hemisphere == "north") 32600 + zone else 32700 + zone
+
+    if (verbose) {
+      message(sprintf(
+        "[calc_ls_factor] Geographic CRS detected. Reprojecting to UTM zone %d%s (EPSG:%d).",
+        zone, toupper(substr(hemisphere, 1, 1)), epsg
+      ))
+    }
+
+    dem <- terra::project(dem, paste0("EPSG:", epsg))
   }
 
-  # 1. Compute slope
+  # 2. Compute slope
+
   # terra::terrain() returns slope in degrees by default; convert to radians
   slope_deg <- terra::terrain(dem, v = "slope", unit = "degrees")
   slope_rad <- slope_deg * (pi / 180)
 
-  # 2. Get cell size (A)
+  # 3. Get cell size (A)
   # Use the mean of x and y resolution to handle slightly non-square cells
   res_xy <- terra::res(dem)
   A      <- mean(res_xy)
 
-  # 3. Compute LS-factor
+  # 4. Compute LS-factor
   # LS = (A / 22.13)^0.4 * (sin(beta) / 0.0896)^1.3
   ls_raster <- terra::app(slope_rad, function(beta) {
     ls_val <- ((A / 22.13) ^ 0.4) * ((sin(beta) / 0.0896) ^ 1.3)
-    pmax(ls_val, 0)   # clamp to 0 (sin can be negative for inverted DEMs)
+    pmax(ls_val, 0)
   })
 
   names(ls_raster) <- "LS_factor"
 
-  # 4. Verbose output
+  # 5. Verbose output
   if (verbose) {
     ls_stats <- terra::global(ls_raster, c("min", "mean", "max"), na.rm = TRUE)
     message(sprintf(
@@ -106,7 +117,7 @@ calc_ls_factor <- function(dem,
     ))
   }
 
-  # 5. Plot
+  # 6. Plot
 
   if (plot) {
     ls_stats <- terra::global(ls_raster, c("min", "mean", "max"), na.rm = TRUE)
