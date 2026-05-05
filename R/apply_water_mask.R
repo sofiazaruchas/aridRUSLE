@@ -1,6 +1,6 @@
 # apply_water_mask.R
 # Mask water pixels in a raster using an NDWI threshold.
-# NDWI is computed internally from a multi-band satellite image.
+# NDWI is computed internally from a multi-band satelite image.
 #
 # References:
 #   McFeeters, S.K. (1996). The use of the Normalised Difference Water Index
@@ -12,7 +12,7 @@
 #' Mask water pixels using an NDWI threshold
 #'
 #' Masks water pixels in a target raster (typically an NDVI composite) based
-#' on NDWI values computed internally from a multi-band satellite image.
+#' on NDWI values computed internally from a multi-band satelite image.
 #' Required preprocessing step before \code{calc_c_factor()}, as open water
 #' surfaces produce misleading NDVI values.
 #'
@@ -23,8 +23,8 @@
 #' \code{nir_band = 8}). Adjust these if using a different sensor or
 #' band ordering.
 #'
-#' If \code{target_raster} and \code{satellite_raster} do not share the same
-#' geometry (extent, resolution, CRS), \code{satellite_raster} is automatically
+#' If \code{target_raster} and \code{satelite_raster} do not share the same
+#' geometry (extent, resolution, CRS), \code{satelite_raster} is automatically
 #' resampled to match \code{target_raster} using nearest-neighbour
 #' interpolation before masking.
 #'
@@ -34,12 +34,12 @@
 #'
 #' @param target_raster SpatRaster. The raster to be masked (e.g. NDVI
 #'   composite). All layers are masked simultaneously.
-#' @param satellite_raster SpatRaster. Multi-band satellite image containing
+#' @param satellite_raster SpatRaster. Multi-band satelite image containing
 #'   at least the green and NIR bands. Used to compute NDWI internally.
 #' @param green_band Integer. Band index of the green band in
-#'   \code{satellite_raster}. Default: \code{3} (Sentinel-2 Band 3).
+#'   \code{satelite_raster}. Default: \code{3} (Sentinel-2 Band 3).
 #' @param nir_band Integer. Band index of the NIR band in
-#'   \code{satellite_raster}. Default: \code{8} (Sentinel-2 Band 8).
+#'   \code{satelite_raster}. Default: \code{8} (Sentinel-2 Band 8).
 #' @param threshold Numeric. NDWI threshold above which pixels are classified
 #'   as water and set to \code{NA} in the output. Default: \code{0.3}
 #'   (McFeeters 1996).
@@ -82,28 +82,27 @@
 #' ndvi_masked <- apply_water_mask(ndvi, s2, green_band = 2, nir_band = 4)
 #' }
 
-apply_water_mask <- function(target_raster, satellite_raster,
-                             green_band = 3, nir_band = 8,
+apply_water_mask <- function(target_raster, satelite_raster,
+                             green_band = 3, nir_band = 1,
                              threshold = 0.3, return_ndwi = FALSE,
-                             plot = FALSE) {
-
+                             plot = TRUE) {
   # Input validation
 
   if (!inherits(target_raster, "SpatRaster"))
     stop("'target_raster' must be a SpatRaster object.")
-  if (!inherits(satellite_raster, "SpatRaster"))
-    stop("'satellite_raster' must be a SpatRaster object.")
+  if (!inherits(satelite_raster, "SpatRaster"))
+    stop("'satelite_raster' must be a SpatRaster object.")
 
-  n_bands <- terra::nlyr(satellite_raster)
+  n_bands <- terra::nlyr(satelite_raster)
   if (!is.numeric(green_band) || length(green_band) != 1 ||
       green_band != as.integer(green_band) ||
       green_band < 1 || green_band > n_bands)
-    stop("'green_band' must be a single integer between 1 and nlyr(satellite_raster) (",
+    stop("'green_band' must be a single integer between 1 and nlyr(satelite_raster) (",
          n_bands, ").")
   if (!is.numeric(nir_band) || length(nir_band) != 1 ||
       nir_band != as.integer(nir_band) ||
       nir_band < 1 || nir_band > n_bands)
-    stop("'nir_band' must be a single integer between 1 and nlyr(satellite_raster) (",
+    stop("'nir_band' must be a single integer between 1 and nlyr(satelite_raster) (",
          n_bands, ").")
   if (green_band == nir_band)
     stop("'green_band' and 'nir_band' must refer to different bands.")
@@ -120,23 +119,23 @@ apply_water_mask <- function(target_raster, satellite_raster,
 
   same_geom <- isTRUE(
     tryCatch(
-      terra::compareGeom(target_raster, satellite_raster,
+      terra::compareGeom(target_raster, satelite_raster,
                          res = TRUE, stopOnError = TRUE),
       error = function(e) FALSE
     )
   )
 
   if (!same_geom) {
-    message("Geometry mismatch detected: resampling 'satellite_raster' to match ",
+    message("Geometry mismatch detected: resampling 'satelite_raster' to match ",
             "'target_raster'.")
-    satellite_raster <- terra::resample(satellite_raster, target_raster,
+    satelite_raster <- terra::resample(satelite_raster, target_raster,
                                         method = "near")
   }
 
   # Compute NDWI internally
 
-  green <- satellite_raster[[green_band]]
-  nir   <- satellite_raster[[nir_band]]
+  green <- satelite_raster[[green_band]]
+  nir   <- satelite_raster[[nir_band]]
   ndwi  <- (green - nir) / (green + nir)
   names(ndwi) <- "NDWI"
 
@@ -163,7 +162,6 @@ apply_water_mask <- function(target_raster, satellite_raster,
   # Optional plot
   if (plot) {
     binary <- terra::ifel(is.na(result[[1]]), NA, 1)
-
     terra::plot(
       binary,
       main       = paste0("Water Mask | NDWI threshold = ", threshold),
@@ -173,16 +171,16 @@ apply_water_mask <- function(target_raster, satellite_raster,
       axes       = TRUE,
       mar        = c(3, 3, 3, 8)
     )
-
     graphics::par(xpd = TRUE)
 
+    usr <- graphics::par("usr")
     graphics::legend(
-      x      = "topright",
+      x      = usr[2] + (usr[2] - usr[1]) * 0.02,
+      y      = usr[4],
       legend = c("Land", "Water"),
       fill   = c("yellow", "steelblue"),
       border = "white",
-      bty    = "n",
-      inset  = c(-0.15, 0)
+      bty    = "n"
     )
 
     graphics::par(xpd = FALSE)

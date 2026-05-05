@@ -6,26 +6,23 @@
 \usage{
 apply_water_mask(
   target_raster,
-  satellite_raster,
+  satelite_raster,
   green_band = 3,
-  nir_band = 8,
+  nir_band = 1,
   threshold = 0.3,
   return_ndwi = FALSE,
-  plot = FALSE
+  plot = TRUE
 )
 }
 \arguments{
 \item{target_raster}{SpatRaster. The raster to be masked (e.g. NDVI
 composite). All layers are masked simultaneously.}
 
-\item{satellite_raster}{SpatRaster. Multi-band satellite image containing
-at least the green and NIR bands. Used to compute NDWI internally.}
-
 \item{green_band}{Integer. Band index of the green band in
-\code{satellite_raster}. Default: \code{3} (Sentinel-2 Band 3).}
+\code{satelite_raster}. Default: \code{3} (Sentinel-2 Band 3).}
 
 \item{nir_band}{Integer. Band index of the NIR band in
-\code{satellite_raster}. Default: \code{8} (Sentinel-2 Band 8).}
+\code{satelite_raster}. Default: \code{8} (Sentinel-2 Band 8).}
 
 \item{threshold}{Numeric. NDWI threshold above which pixels are classified
 as water and set to \code{NA} in the output. Default: \code{0.3}
@@ -39,6 +36,9 @@ returned object. Default: \code{FALSE}.}
 layer) with water pixels shown in light blue. Useful for visually
 inspecting the mask and adjusting \code{threshold} if needed.
 Default: \code{FALSE}.}
+
+\item{satellite_raster}{SpatRaster. Multi-band satelite image containing
+at least the green and NIR bands. Used to compute NDWI internally.}
 }
 \value{
 SpatRaster with the same dimensions and CRS as \code{target_raster}.
@@ -48,7 +48,7 @@ If \code{return_ndwi = TRUE}, the computed NDWI raster is accessible via
 }
 \description{
 Masks water pixels in a target raster (typically an NDVI composite) based
-on NDWI values computed internally from a multi-band satellite image.
+on NDWI values computed internally from a multi-band satelite image.
 Required preprocessing step before \code{calc_c_factor()}, as open water
 surfaces produce misleading NDVI values.
 }
@@ -60,8 +60,8 @@ Band indices default to Sentinel-2 band numbering (\code{green_band = 3},
 \code{nir_band = 8}). Adjust these if using a different sensor or
 band ordering.
 
-If \code{target_raster} and \code{satellite_raster} do not share the same
-geometry (extent, resolution, CRS), \code{satellite_raster} is automatically
+If \code{target_raster} and \code{satelite_raster} do not share the same
+geometry (extent, resolution, CRS), \code{satelite_raster} is automatically
 resampled to match \code{target_raster} using nearest-neighbour
 interpolation before masking.
 
