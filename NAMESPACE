@@ -2,6 +2,7 @@
 
 export(apply_water_mask)
 export(calc_c_factor)
+export(calc_erosion_risk)
 export(calc_ls_factor)
 export(calc_r_factor)
 export(get_climate_zone)
