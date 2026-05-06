@@ -7,11 +7,12 @@
 #' Combine factors into an Erosion Risk Index (ERI)
 #'
 #' Normalises R, LS and C to 0-1 and multiplies them pixel-wise to produce
-#' the Erosion Risk Index (ERI). Automatically checks that all three rasters
-#' share the same geometry (extent, resolution, CRS).
+#' the Erosion Risk Index (ERI). If the rasters do not share the same geometry
+#' (extent, resolution, CRS), they are automatically reprojected and resampled
+#' to match \code{ls_factor} (used as reference grid).
 #'
 #' The ERI is calculated as:
-#' #' \deqn{ERI = R_{norm} \times LS_{norm} \times C_{norm}}
+#' \deqn{ERI = R_{norm} \times LS_{norm} \times C_{norm}}
 #'
 #' where each factor is min-max normalised to \eqn{[0, 1]} before multiplication.
 #'
@@ -19,9 +20,13 @@
 #'
 #' @param r_factor SpatRaster. Output of \code{calc_r_factor()}.
 #' @param ls_factor SpatRaster. Output of \code{calc_ls_factor()}.
+#'   Used as the reference grid for alignment.
 #' @param c_factor SpatRaster. Output of \code{calc_c_factor()}.
 #' @param normalize Logical. If \code{TRUE} (default), each factor is
 #'   min-max normalised to 0-1 before multiplication.
+#' @param resample_method Character. Resampling method passed to
+#'   \code{terra::resample()}. Default is \code{"bilinear"} (suitable for
+#'   continuous data). Use \code{"near"} for categorical rasters.
 #' @param plot Logical. If \code{TRUE} (default), displays the ERI raster
 #'   with a continuous colour ramp from green (low risk) to red (high risk).
 #'   Useful for visually inspecting the result before passing it to
@@ -41,7 +46,7 @@
 #' ls <- calc_ls_factor(dem)
 #' c  <- calc_c_factor(ndvi_masked)
 #'
-#' # Compute ERI with default normalisation and plot
+#' # Compute ERI – misaligned rasters are reprojected/resampled automatically
 #' eri <- calc_erosion_risk(r, ls, c)
 #'
 #' # Without plot
@@ -49,45 +54,66 @@
 #'
 #' # Without normalisation
 #' eri <- calc_erosion_risk(r, ls, c, normalize = FALSE)
+#'
+#' # Nearest-neighbour resampling (e.g. for categorical C-factor)
+#' eri <- calc_erosion_risk(r, ls, c, resample_method = "near")
 #' }
 
 calc_erosion_risk <- function(r_factor, ls_factor, c_factor,
-                              normalize = TRUE, plot = TRUE) {
+                              normalize       = TRUE,
+                              resample_method = "bilinear",
+                              plot            = TRUE) {
 
   # Input validation
 
-  if (!inherits(r_factor, "SpatRaster"))
-    stop("'r_factor' must be a SpatRaster object.")
-  if (!inherits(ls_factor, "SpatRaster"))
-    stop("'ls_factor' must be a SpatRaster object.")
-  if (!inherits(c_factor, "SpatRaster"))
-    stop("'c_factor' must be a SpatRaster object.")
+  if (!inherits(r_factor,  "SpatRaster")) stop("'r_factor' must be a SpatRaster object.")
+  if (!inherits(ls_factor, "SpatRaster")) stop("'ls_factor' must be a SpatRaster object.")
+  if (!inherits(c_factor,  "SpatRaster")) stop("'c_factor' must be a SpatRaster object.")
   if (!is.logical(normalize) || length(normalize) != 1)
     stop("'normalize' must be a single logical value (TRUE or FALSE).")
   if (!is.logical(plot) || length(plot) != 1)
     stop("'plot' must be a single logical value (TRUE or FALSE).")
+  if (!resample_method %in% c("near", "bilinear", "cubic", "cubicspline",
+                              "lanczos", "sum", "mode", "max", "min",
+                              "med", "q1", "q3", "rms"))
+    stop("'resample_method' is not a recognised terra resampling method.")
 
-  # Geometry check
+  # Helper: geometry check
+  geom_match <- function(a, b) {
+    isTRUE(tryCatch(
+      terra::compareGeom(a, b, res = TRUE, stopOnError = TRUE),
+      error = function(e) FALSE
+    ))
+  }
 
-  geom_ok <- isTRUE(tryCatch(
-    terra::compareGeom(r_factor, ls_factor, res = TRUE, stopOnError = TRUE),
-    error = function(e) FALSE
-  )) && isTRUE(tryCatch(
-    terra::compareGeom(r_factor, c_factor,  res = TRUE, stopOnError = TRUE),
-    error = function(e) FALSE
-  ))
+  # Auto-alignment: project + resample to ls_factor reference grid
 
-  if (!geom_ok)
-    stop("'r_factor', 'ls_factor' and 'c_factor' must share the same ",
-         "extent, resolution and CRS. Use terra::project() and ",
-         "terra::resample() to align them before calling calc_erosion_risk().")
+  align <- function(x, ref, name) {
+
+    if (!terra::same.crs(x, ref)) {
+      message("Geometry mismatch detected: reprojecting '", name,
+              "' to match 'ls_factor'.")
+      x <- terra::project(x, ref)
+    }
+
+    if (!geom_match(x, ref)) {
+      message("Geometry mismatch detected: resampling '", name,
+              "' to match 'ls_factor' (method = '", resample_method, "').")
+      x <- terra::resample(x, ref, method = resample_method)
+    }
+
+    x
+  }
+
+  r_factor <- align(r_factor, ls_factor, "r_factor")
+  c_factor <- align(c_factor, ls_factor, "c_factor")
 
   # Optional min-max normalisation
 
   norm01 <- function(x) {
     mn <- terra::global(x, "min", na.rm = TRUE)[[1]]
     mx <- terra::global(x, "max", na.rm = TRUE)[[1]]
-    if (mx == mn) return(x * 0)   # constant raster -> all zeros
+    if (is.na(mn) || is.na(mx) || mx == mn) return(x * 0)
     (x - mn) / (mx - mn)
   }
 
@@ -103,30 +129,26 @@ calc_erosion_risk <- function(r_factor, ls_factor, c_factor,
 
   # Compute ERI
 
-  eri <- r * ls * c
+  eri        <- r * ls * c
   names(eri) <- "ERI"
-
-  # Print message
 
   message("ERI computed as R_norm x LS_norm x C_norm. ",
           "Pass result to classify_erosion_risk() for risk classification.")
 
   # Optional plot
-
   if (plot) {
     pal <- grDevices::colorRampPalette(c("darkgreen", "yellow", "red"))
 
     terra::plot(
       eri,
-      main       = "Erosion Risk Index (ERI)",
-      col        = pal(100),
-      legend     = TRUE,
-      axes       = TRUE,
-      mar        = c(3, 3, 3, 8)
+      main   = "Erosion Risk Index (ERI)",
+      col    = pal(100),
+      legend = TRUE,
+      axes   = TRUE,
+      mar    = c(3, 3, 3, 8)
     )
 
     graphics::par(xpd = TRUE)
-
     usr <- graphics::par("usr")
     graphics::legend(
       x      = usr[2] + (usr[2] - usr[1]) * 0.02,
@@ -136,10 +158,8 @@ calc_erosion_risk <- function(r_factor, ls_factor, c_factor,
       border = "white",
       bty    = "n"
     )
-
     graphics::par(xpd = FALSE)
   }
 
   return(invisible(eri))
-
 }

@@ -4,17 +4,29 @@
 \alias{calc_erosion_risk}
 \title{Combine factors into an Erosion Risk Index (ERI)}
 \usage{
-calc_erosion_risk(r_factor, ls_factor, c_factor, normalize = TRUE, plot = TRUE)
+calc_erosion_risk(
+  r_factor,
+  ls_factor,
+  c_factor,
+  normalize = TRUE,
+  resample_method = "bilinear",
+  plot = TRUE
+)
 }
 \arguments{
 \item{r_factor}{SpatRaster. Output of \code{calc_r_factor()}.}
 
-\item{ls_factor}{SpatRaster. Output of \code{calc_ls_factor()}.}
+\item{ls_factor}{SpatRaster. Output of \code{calc_ls_factor()}.
+Used as the reference grid for alignment.}
 
 \item{c_factor}{SpatRaster. Output of \code{calc_c_factor()}.}
 
 \item{normalize}{Logical. If \code{TRUE} (default), each factor is
 min-max normalised to 0-1 before multiplication.}
+
+\item{resample_method}{Character. Resampling method passed to
+\code{terra::resample()}. Default is \code{"bilinear"} (suitable for
+continuous data). Use \code{"near"} for categorical rasters.}
 
 \item{plot}{Logical. If \code{TRUE} (default), displays the ERI raster
 with a continuous colour ramp from green (low risk) to red (high risk).
@@ -26,12 +38,13 @@ SpatRaster (0-1) with Erosion Risk Index values.
 }
 \description{
 Normalises R, LS and C to 0-1 and multiplies them pixel-wise to produce
-the Erosion Risk Index (ERI). Automatically checks that all three rasters
-share the same geometry (extent, resolution, CRS).
+the Erosion Risk Index (ERI). If the rasters do not share the same geometry
+(extent, resolution, CRS), they are automatically reprojected and resampled
+to match \code{ls_factor} (used as reference grid).
 }
 \details{
 The ERI is calculated as:
-#' \deqn{ERI = R_{norm} \times LS_{norm} \times C_{norm}}
+\deqn{ERI = R_{norm} \times LS_{norm} \times C_{norm}}
 
 where each factor is min-max normalised to \eqn{[0, 1]} before multiplication.
 
@@ -43,7 +56,7 @@ r  <- calc_r_factor(precip, lat = -33.0, lon = -71.0)
 ls <- calc_ls_factor(dem)
 c  <- calc_c_factor(ndvi_masked)
 
-# Compute ERI with default normalisation and plot
+# Compute ERI – misaligned rasters are reprojected/resampled automatically
 eri <- calc_erosion_risk(r, ls, c)
 
 # Without plot
@@ -51,6 +64,9 @@ eri <- calc_erosion_risk(r, ls, c, plot = FALSE)
 
 # Without normalisation
 eri <- calc_erosion_risk(r, ls, c, normalize = FALSE)
+
+# Nearest-neighbour resampling (e.g. for categorical C-factor)
+eri <- calc_erosion_risk(r, ls, c, resample_method = "near")
 }
 }
 \references{
