@@ -29,8 +29,8 @@
 #'   continuous data). Use \code{"near"} for categorical rasters.
 #' @param plot Logical. If \code{TRUE} (default), displays the ERI raster
 #'   with a continuous colour ramp from green (low risk) to red (high risk).
-#'   Useful for visually inspecting the result before passing it to
-#'   \code{classify_erosion_risk()}.
+#'   NA pixels are shown in white. Useful for visually inspecting the result
+#'   before passing it to \code{classify_erosion_risk()}.
 #'
 #' @return SpatRaster (0-1) with Erosion Risk Index values.
 #'
@@ -79,6 +79,7 @@ calc_erosion_risk <- function(r_factor, ls_factor, c_factor,
     stop("'resample_method' is not a recognised terra resampling method.")
 
   # Helper: geometry check
+
   geom_match <- function(a, b) {
     isTRUE(tryCatch(
       terra::compareGeom(a, b, res = TRUE, stopOnError = TRUE),
@@ -135,7 +136,8 @@ calc_erosion_risk <- function(r_factor, ls_factor, c_factor,
   message("ERI computed as R_norm x LS_norm x C_norm. ",
           "Pass result to classify_erosion_risk() for risk classification.")
 
-  # Optional plot
+  # Optional plot ─
+
   if (plot) {
     pal <- grDevices::colorRampPalette(c("darkgreen", "yellow", "red"))
 
@@ -143,21 +145,24 @@ calc_erosion_risk <- function(r_factor, ls_factor, c_factor,
       eri,
       main   = "Erosion Risk Index (ERI)",
       col    = pal(100),
-      legend = TRUE,
+      legend = FALSE,        # terra-Legende deaktivieren
       axes   = TRUE,
-      mar    = c(3, 3, 3, 8)
+      mar    = c(3, 3, 3, 9)
     )
 
     graphics::par(xpd = TRUE)
     usr <- graphics::par("usr")
+
     graphics::legend(
-      x      = usr[2] + (usr[2] - usr[1]) * 0.02,
+      x      = usr[2] + (usr[2] - usr[1]) * 0.03,
       y      = usr[4],
-      legend = c("Hoch", "Mittel", "Niedrig"),
-      fill   = c("red", "yellow", "darkgreen"),
-      border = "white",
-      bty    = "n"
+      legend = c("Hoch", "Mittel", "Niedrig", "NA"),
+      fill   = c("red", "yellow", "darkgreen", "white"),
+      border = c("white", "white", "white", "grey60"),
+      bty    = "n",
+      cex    = 0.9
     )
+
     graphics::par(xpd = FALSE)
   }
 

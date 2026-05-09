@@ -30,6 +30,7 @@ continuous data). Use \code{"near"} for categorical rasters.}
 
 \item{plot}{Logical. If \code{TRUE} (default), displays the ERI raster
 with a continuous colour ramp from green (low risk) to red (high risk).
+NA pixels (water) are shown in blue.
 Useful for visually inspecting the result before passing it to
 \code{classify_erosion_risk()}.}
 }

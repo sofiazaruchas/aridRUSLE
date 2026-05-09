@@ -290,3 +290,30 @@ test_that("plot = FALSE still emits ERI message", {
   c  <- make_raster(rep(0.5, 9))
   expect_message(calc_erosion_risk(r, ls, c, plot = FALSE), "ERI computed")
 })
+
+test_that("plot = TRUE with NA pixels runs without error or warning", {
+  r_vals    <- seq(1, 9)
+  r_vals[1] <- NA
+  r  <- make_raster(r_vals)
+  ls <- make_raster(seq(1, 9))
+  c  <- make_raster(seq(0.1, 0.9, length.out = 9))
+  pdf(NULL)
+  on.exit(dev.off(), add = TRUE)
+  expect_no_warning(calc_erosion_risk(r, ls, c, plot = TRUE))
+})
+
+test_that("plot = TRUE with NA pixels still returns correct non-NA ERI values", {
+  r_vals     <- seq(0.1, 0.9, length.out = 9)
+  r_vals[1]  <- NA
+  ls_vals    <- seq(0.2, 1.0, length.out = 9)
+  c_vals     <- seq(0.1, 0.5, length.out = 9)
+  r  <- make_raster(r_vals)
+  ls <- make_raster(ls_vals)
+  c  <- make_raster(c_vals)
+  pdf(NULL)
+  on.exit(dev.off(), add = TRUE)
+  result <- calc_erosion_risk(r, ls, c, normalize = FALSE, plot = TRUE)
+  vals <- as.vector(terra::values(result))
+  expect_true(is.na(vals[1]))
+  expect_equal(vals[-1], (r_vals * ls_vals * c_vals)[-1], tolerance = 1e-6)
+})
