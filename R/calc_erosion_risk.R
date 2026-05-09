@@ -136,7 +136,7 @@ calc_erosion_risk <- function(r_factor, ls_factor, c_factor,
   message("ERI computed as R_norm x LS_norm x C_norm. ",
           "Pass result to classify_erosion_risk() for risk classification.")
 
-  # Optional plot ─
+  # Optional plot
 
   if (plot) {
     pal <- grDevices::colorRampPalette(c("darkgreen", "yellow", "red"))
@@ -145,7 +145,7 @@ calc_erosion_risk <- function(r_factor, ls_factor, c_factor,
       eri,
       main   = "Erosion Risk Index (ERI)",
       col    = pal(100),
-      legend = FALSE,        # terra-Legende deaktivieren
+      legend = FALSE,
       axes   = TRUE,
       mar    = c(3, 3, 3, 9)
     )
@@ -156,7 +156,7 @@ calc_erosion_risk <- function(r_factor, ls_factor, c_factor,
     graphics::legend(
       x      = usr[2] + (usr[2] - usr[1]) * 0.03,
       y      = usr[4],
-      legend = c("Hoch", "Mittel", "Niedrig", "NA"),
+      legend = c("High (> 0.66)", "Medium (0.33 - 0.66)", "Low (0 - 0.33)", "NA"),
       fill   = c("red", "yellow", "darkgreen", "white"),
       border = c("white", "white", "white", "grey60"),
       bty    = "n",
