@@ -85,21 +85,21 @@ test_that("result is returned invisibly also when plot = TRUE", {
 # Classification values
 
 test_that("values in 0-0.33 are classified as 1 (Low)", {
-  eri    <- make_eri(c(0.0, 0.1, 0.2, 0.33))
+  eri    <- make_eri(c(0.0, 0.1, 0.2, 0.33), nrow = 2, ncol = 2)
   result <- classify_erosion_risk(eri, plot = FALSE)
   vals   <- as.vector(terra::values(result))
   expect_true(all(vals == 1, na.rm = TRUE))
 })
 
 test_that("values in 0.33-0.66 are classified as 2 (Medium)", {
-  eri    <- make_eri(c(0.34, 0.45, 0.55, 0.66))
+  eri    <- make_eri(c(0.34, 0.45, 0.55, 0.66), nrow = 2, ncol = 2)
   result <- classify_erosion_risk(eri, plot = FALSE)
   vals   <- as.vector(terra::values(result))
   expect_true(all(vals == 2, na.rm = TRUE))
 })
 
 test_that("values in 0.66-1 are classified as 3 (High)", {
-  eri    <- make_eri(c(0.67, 0.75, 0.9, 1.0))
+  eri    <- make_eri(c(0.67, 0.75, 0.9, 1.0), nrow = 2, ncol = 2)
   result <- classify_erosion_risk(eri, plot = FALSE)
   vals   <- as.vector(terra::values(result))
   expect_true(all(vals == 3, na.rm = TRUE))
