@@ -8,8 +8,11 @@ apply_water_mask(
   target_raster,
   satelite_raster,
   green_band = 3,
-  nir_band = 1,
+  nir_band = 8,
   threshold = 0.3,
+  smooth = TRUE,
+  smooth_w = 3,
+  min_water_ha = 1,
   return_ndwi = FALSE,
   plot = TRUE
 )
@@ -18,27 +21,48 @@ apply_water_mask(
 \item{target_raster}{SpatRaster. The raster to be masked (e.g. NDVI
 composite). All layers are masked simultaneously.}
 
+\item{satelite_raster}{SpatRaster. Multi-band satelite image containing
+at least the green and NIR bands. Used to compute NDWI internally.}
+
 \item{green_band}{Integer. Band index of the green band in
-\code{satelite_raster}. Default: \code{3} (Sentinel-2 Band 3).}
+\code{satelite_raster}. Default: \code{3} (Sentinel-2 Band 3).
+Use \code{3} for standard Sentinel-2 multiband images.
+Adjust if using a False Colour Composite or a different sensor.}
 
 \item{nir_band}{Integer. Band index of the NIR band in
-\code{satelite_raster}. Default: \code{8} (Sentinel-2 Band 8).}
+\code{satelite_raster}. Default: \code{8} (Sentinel-2 Band 8).
+Use \code{1} if working with a Sentinel-2 False Colour Composite
+(RGB = NIR / Red / Green).}
 
 \item{threshold}{Numeric. NDWI threshold above which pixels are classified
 as water and set to \code{NA} in the output. Default: \code{0.3}
 (McFeeters 1996).}
 
-\item{return_ndwi}{Logical. If \code{TRUE}, the internally computed NDWI
-raster is stored as an attribute (\code{attr(result, "ndwi")}) on the
-returned object. Default: \code{FALSE}.}
+\item{smooth}{Logical. If \code{TRUE}, applies a mean filter to the NDWI
+raster before thresholding to reduce isolated resampling artefacts at
+water-land boundaries. Window size is controlled by \code{smooth_w}.
+Default: \code{TRUE}.}
 
-\item{plot}{Logical. If \code{TRUE}, displays the masked raster (first
-layer) with water pixels shown in light blue. Useful for visually
-inspecting the mask and adjusting \code{threshold} if needed.
+\item{smooth_w}{Integer. Window size for the smoothing filter (must be an
+odd integer >= 3). Only used when \code{smooth = TRUE}.
+Default: \code{3}.}
+
+\item{min_water_ha}{Numeric or NULL. Minimum area in hectares for a
+connected water patch to be masked. Patches smaller than this threshold
+are kept as land. Converted to pixels automatically based on the
+resolution of \code{satelite_raster}. If \code{NULL}, all pixels above
+\code{threshold} are masked regardless of patch size.
+Recommended: \code{1} (FAO standard) for semi-arid regions.}
+
+\item{return_ndwi}{Logical. If \code{TRUE}, the internally computed NDWI
+raster (after smoothing, if applicable) is stored as an attribute
+(\code{attr(result, "ndwi")}) on the returned object.
 Default: \code{FALSE}.}
 
-\item{satellite_raster}{SpatRaster. Multi-band satelite image containing
-at least the green and NIR bands. Used to compute NDWI internally.}
+\item{plot}{Logical. If \code{TRUE} (default), displays the masked raster
+(first layer) with water pixels shown in steelblue. Useful for visually
+inspecting the mask and adjusting \code{threshold} or
+\code{min_water_ha} if needed.}
 }
 \value{
 SpatRaster with the same dimensions and CRS as \code{target_raster}.
@@ -56,36 +80,63 @@ surfaces produce misleading NDVI values.
 The NDWI is calculated as:
 \deqn{NDWI = \frac{Green - NIR}{Green + NIR}}{NDWI = (Green - NIR) / (Green + NIR)}
 
-Band indices default to Sentinel-2 band numbering (\code{green_band = 3},
-\code{nir_band = 8}). Adjust these if using a different sensor or
-band ordering.
+Band indices default to standard Sentinel-2 band numbering
+(\code{green_band = 3}, \code{nir_band = 8}). Adjust these if using a
+different sensor or band ordering (e.g. a False Colour Composite where
+NIR is stored as band 1).
 
 If \code{target_raster} and \code{satelite_raster} do not share the same
 geometry (extent, resolution, CRS), \code{satelite_raster} is automatically
 resampled to match \code{target_raster} using nearest-neighbour
 interpolation before masking.
 
+If \code{smooth = TRUE}, the NDWI raster is spatially smoothed with a
+mean filter before thresholding. This reduces isolated salt-and-pepper
+pixels caused by resampling artefacts at water-land boundaries.
+
+If \code{min_water_ha} is set, only connected water patches with an area
+of at least \code{min_water_ha} hectares are masked. This removes isolated
+single pixels and small artefacts, retaining only true water bodies such
+as lakes and reservoirs. The minimum area is converted to pixels
+automatically based on the resolution of \code{satelite_raster}, making
+the threshold resolution-independent and scientifically justifiable.
+Recommended values based on the literature:
+\itemize{
+\item \code{0.1} ha — EU Water Framework Directive minimum mapping unit
+\item \code{1.0} ha — FAO Irrigation & Drainage standard
+\item \code{4.0} ha — typical for Landsat-based (30 m) studies
+}
+
 Setting \code{plot = TRUE} displays the masked result so the user can
-visually inspect the water mask and adjust \code{threshold} if needed
-before proceeding to \code{calc_c_factor()}.
+visually inspect the water mask and adjust \code{threshold} or
+\code{min_water_ha} if needed before proceeding to \code{calc_c_factor()}.
 }
 \examples{
 \dontrun{
 ndvi <- terra::rast("s2_ndvi.tif")
-s2   <- terra::rast("s2_bands.tif")  # multi-band Sentinel-2 image
+s2   <- terra::rast("s2_bands.tif")  # standard multi-band Sentinel-2 image
 
-# Mask water pixels with default threshold and Sentinel-2 band indices
+# Mask water pixels with default settings (Sentinel-2 bands, smooth = TRUE)
 ndvi_masked <- apply_water_mask(ndvi, s2)
 
+# Only mask water bodies >= 1 ha (FAO standard)
+ndvi_masked <- apply_water_mask(ndvi, s2, min_water_ha = 1)
+
+# False Colour Composite (NIR stored as band 1)
+s2_fcc      <- terra::rast("sentinel_false_colour.tif")
+ndvi_masked <- apply_water_mask(ndvi, s2_fcc, green_band = 3, nir_band = 1,
+                                min_water_ha = 1)
+
 # Inspect the result visually before proceeding
-ndvi_masked <- apply_water_mask(ndvi, s2, threshold = 0.3, plot = TRUE)
+ndvi_masked <- apply_water_mask(ndvi, s2, min_water_ha = 1, plot = TRUE)
+
+# Disable smoothing and patch filtering
+ndvi_masked <- apply_water_mask(ndvi, s2, smooth = FALSE,
+                                min_water_ha = NULL)
 
 # Retrieve the internally computed NDWI raster
 ndvi_masked <- apply_water_mask(ndvi, s2, return_ndwi = TRUE)
 ndwi        <- attr(ndvi_masked, "ndwi")
-
-# Custom band indices (e.g. different sensor or band ordering)
-ndvi_masked <- apply_water_mask(ndvi, s2, green_band = 2, nir_band = 4)
 }
 }
 \references{

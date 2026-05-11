@@ -4,41 +4,60 @@
 \alias{classify_erosion_risk}
 \title{Classify an Erosion Risk Index into risk classes}
 \usage{
-classify_erosion_risk(eri, plot = TRUE)
+classify_erosion_risk(
+  eri,
+  breaks = c(0, 0.2, 0.4, 0.6, 0.8, 1),
+  labels = c("Very Low", "Low", "Medium", "High", "Very High"),
+  plot = TRUE
+)
 }
 \arguments{
 \item{eri}{SpatRaster. Output of \code{calc_erosion_risk()}. Expected to
 contain normalised ERI values in the range \eqn{[0, 1]}.}
 
+\item{breaks}{Numeric vector of class boundaries. Must start at 0 and end
+at 1. Default: \code{c(0, 0.2, 0.4, 0.6, 0.8, 1)} (five equal classes).}
+
+\item{labels}{Character vector of class labels. Length must equal
+\code{length(breaks) - 1}. Default: \code{c("Very Low", "Low",
+  "Medium", "High", "Very High")}.}
+
 \item{plot}{Logical. If \code{TRUE} (default), displays the classified
-raster with a three-colour scheme (green / yellow / red) and a
-categorical legend. NA pixels are shown in white.}
+raster with a colour scheme from green (low risk) to red (high risk)
+and a categorical legend. NA pixels are shown in white.}
 }
 \value{
-SpatRaster with integer class values (1 = Low, 2 = Medium,
-3 = High). NA pixels are preserved. The layer is named
-\code{"ERI_class"}.
+A named list with two elements:
+\describe{
+\item{\code{$classified}}{SpatRaster with integer class values
+(1 to \code{length(labels)}). NA pixels are preserved.
+The layer is named \code{"ERI_class"}.}
+\item{\code{$summary}}{data.frame with columns:
+\code{class} (integer), \code{label} (character),
+\code{pixels} (integer), \code{area_ha} (numeric),
+\code{proportion} (numeric, 0-1).}
+}
 }
 \description{
-Classifies a continuous ERI raster (0-1) into three discrete risk classes
-based on equal-interval thresholds:
-}
-\details{
-\itemize{
-\item \strong{1 - Low}:    ERI in \eqn{[0,\ 0.33]}
-\item \strong{2 - Medium}: ERI in \eqn{(0.33,\ 0.66]}
-\item \strong{3 - High}:   ERI in \eqn{(0.66,\ 1]}
-}
-
-NA pixels (e.g. water surfaces masked upstream) are preserved as NA in the
-output.
+Classifies a continuous ERI raster (0-1) into discrete risk classes using
+configurable break points and computes per-class area statistics.
 }
 \examples{
 \dontrun{
-eri        <- calc_erosion_risk(r, ls, c)
-eri_class  <- classify_erosion_risk(eri)
+eri    <- calc_erosion_risk(r, ls, c)
+
+# Default classification (5 classes)
+result <- classify_erosion_risk(eri)
+print(result$summary)
+
+# Custom breaks and labels (3 classes)
+result <- classify_erosion_risk(
+  eri,
+  breaks = c(0, 0.33, 0.66, 1),
+  labels = c("Low", "Medium", "High")
+)
 
 # Without plot
-eri_class  <- classify_erosion_risk(eri, plot = FALSE)
+result <- classify_erosion_risk(eri, plot = FALSE)
 }
 }

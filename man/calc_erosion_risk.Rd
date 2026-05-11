@@ -8,6 +8,7 @@ calc_erosion_risk(
   r_factor,
   ls_factor,
   c_factor,
+  dem = NULL,
   normalize = TRUE,
   resample_method = "bilinear",
   plot = TRUE
@@ -21,20 +22,23 @@ Used as the reference grid for alignment.}
 
 \item{c_factor}{SpatRaster. Output of \code{calc_c_factor()}.}
 
+\item{dem}{SpatRaster or NULL. Digital Elevation Model used to compute
+hillshade for the map background. If \code{NULL} (default), no hillshade
+is rendered and the ERI is plotted on a white background.}
+
 \item{normalize}{Logical. If \code{TRUE} (default), each factor is
 min-max normalised to 0-1 before multiplication.}
 
 \item{resample_method}{Character. Resampling method passed to
-\code{terra::resample()}. Default is \code{"bilinear"} (suitable for
-continuous data). Use \code{"near"} for categorical rasters.}
+\code{terra::resample()}. Default: \code{"bilinear"}.}
 
-\item{plot}{Logical. If \code{TRUE} (default), displays the ERI raster
-with a continuous colour ramp from green (low risk) to red (high risk).
-NA pixels are shown in white. Useful for visually inspecting the result
-before passing it to \code{classify_erosion_risk()}.}
+\item{plot}{Logical. If \code{TRUE} (default), displays a publication-style
+map of the ERI with hillshade background (if \code{dem} is supplied),
+north arrow, scale bar, and gradient legends.}
 }
 \value{
-SpatRaster (0-1) with Erosion Risk Index values.
+SpatRaster (0-1) with Erosion Risk Index values, named
+\code{"ERI"}.
 }
 \description{
 Normalises R, LS and C to 0-1 and multiplies them pixel-wise to produce
@@ -46,27 +50,29 @@ to match \code{ls_factor} (used as reference grid).
 The ERI is calculated as:
 \deqn{ERI = R_{norm} \times LS_{norm} \times C_{norm}}
 
-where each factor is min-max normalised to \eqn{[0, 1]} before multiplication.
+where each factor is min-max normalised to \eqn{[0, 1]} before
+multiplication. Higher ERI values indicate greater erosion hazard.
 
-Higher ERI values indicate greater erosion hazard.
+If \code{plot = TRUE} and \code{dem} is supplied, the ERI is displayed
+overlaid on a hillshade computed internally from the DEM, matching the
+cartographic style of the aridRUSLE output maps. The plot includes a
+north arrow, scale bar, and two gradient legends (ERI and hillshade).
 }
 \examples{
 \dontrun{
-r  <- calc_r_factor(precip, lat = -33.0, lon = -71.0)
-ls <- calc_ls_factor(dem)
-c  <- calc_c_factor(ndvi_masked)
+r   <- calc_r_factor(precip, lat = -33.0, lon = -71.0)
+ls  <- calc_ls_factor(dem)
+c   <- calc_c_factor(ndvi_masked)
+dem <- terra::rast("srtm.tif")
 
-# Compute ERI – misaligned rasters are reprojected/resampled automatically
+# ERI with hillshade background map
+eri <- calc_erosion_risk(r, ls, c, dem = dem)
+
+# Without hillshade
 eri <- calc_erosion_risk(r, ls, c)
 
 # Without plot
 eri <- calc_erosion_risk(r, ls, c, plot = FALSE)
-
-# Without normalisation
-eri <- calc_erosion_risk(r, ls, c, normalize = FALSE)
-
-# Nearest-neighbour resampling (e.g. for categorical C-factor)
-eri <- calc_erosion_risk(r, ls, c, resample_method = "near")
 }
 }
 \references{
