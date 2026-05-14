@@ -13,6 +13,11 @@ BugReports: https://github.com/sofiazaruchas/aridRUSLE/issues
 Imports: 
     kgc,
     terra
+    terra (>= 1.7-0),
+    tmap (>= 4.0),
+    sf
 Suggests: 
     testthat (>= 3.0.0)
+    rnaturalearth,
+    rnaturalearthdata
 Config/testthat/edition: 3
