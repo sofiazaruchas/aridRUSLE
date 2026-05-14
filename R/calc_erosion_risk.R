@@ -93,9 +93,7 @@
 #' eri_raster <- result$eri
 #' }
 
-calc_erosion_risk <- function(r_factor,
-                              ls_factor,
-                              c_factor,
+calc_erosion_risk <- function(r_factor, ls_factor, c_factor,
                               dem             = NULL,
                               normalize       = TRUE,
                               resample_method = "bilinear",
@@ -103,21 +101,6 @@ calc_erosion_risk <- function(r_factor,
                               map_title       = "Soil Erosivity",
                               figure_caption  = NULL,
                               data_source     = NULL) {
-
-  # Package checks
-
-  if (!requireNamespace("terra", quietly = TRUE))
-    stop("Package 'terra' (>= 1.7-0) is required.")
-  if (plot) {
-    if (!requireNamespace("tmap", quietly = TRUE))
-      stop("Package 'tmap' (>= 4.0) is required for plot = TRUE.")
-    if (!requireNamespace("sf",   quietly = TRUE))
-      stop("Package 'sf' is required for plot = TRUE.")
-    tmap_ver <- utils::packageVersion("tmap")
-    if (tmap_ver < "4.0")
-      warning("tmap >= 4.0 is recommended. Some layout features may differ ",
-              "with version ", tmap_ver, ".")
-  }
 
   # Input validation
 
@@ -137,6 +120,22 @@ calc_erosion_risk <- function(r_factor,
                               "lanczos", "sum", "mode", "max", "min",
                               "med", "q1", "q3", "rms"))
     stop("'resample_method' is not a recognised terra resampling method.")
+
+  # Package checks
+
+  if (!requireNamespace("terra", quietly = TRUE))
+    stop("Package 'terra' (>= 1.7-0) is required.")
+  if (plot) {
+    if (!requireNamespace("tmap", quietly = TRUE))
+      stop("Package 'tmap' (>= 4.0) is required for plot = TRUE.")
+    if (!requireNamespace("sf",   quietly = TRUE))
+      stop("Package 'sf' is required for plot = TRUE.")
+    tmap_ver <- utils::packageVersion("tmap")
+    if (tmap_ver < "4.0")
+      warning("tmap >= 4.0 is recommended. Some layout features may differ ",
+              "with version ", tmap_ver, ".")
+  }
+
 
   # Geometry helpers
 

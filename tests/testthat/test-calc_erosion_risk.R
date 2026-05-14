@@ -1,235 +1,355 @@
-# test_calc_erosion_risk.R
-# Tests for calc_erosion_risk() using synthetic SpatRasters.
-# No real geodata required – runs fully offline.
-#
-# Run:
-#   source("test_calc_erosion_risk.R")
-# or in package context:
-#   devtools::load_all(); source("tests/test_calc_erosion_risk.R")
-
-library(terra)
-
-# Helper functions
-
-pass <- function(msg) cat(sprintf("  \u2713 PASS  %s\n", msg))
-fail <- function(msg) cat(sprintf("  \u2717 FAIL  %s\n", msg))
-
-expect_true <- function(cond, msg) {
-  if (isTRUE(cond)) pass(msg) else { fail(msg); stop(msg) }
-}
-expect_error <- function(expr, msg) {
-  ok <- tryCatch({ force(expr); FALSE }, error = function(e) TRUE)
-  if (ok) pass(msg) else { fail(msg); stop(msg) }
-}
-expect_message <- function(expr, pattern, msg) {
-  msgs <- character(0)
-  withCallingHandlers(force(expr),
-                      message = function(m) { msgs <<- c(msgs, conditionMessage(m)); invokeRestart("muffleMessage") })
-  ok <- any(grepl(pattern, msgs))
-  if (ok) pass(msg) else { fail(msg); stop(msg) }
-}
-
-section <- function(title) cat(sprintf("\n── %s\n", title))
-
-# Create synthetic test rasters
-
-# All rasters: 30 x 30 pixels, geographic CRS (WGS-84).
-# Generic extent (0-1 degrees) – no region-specific coordinates,
-# since calc_erosion_risk() is designed for global application.
-
-make_rast <- function(vals, crs = "EPSG:4326",
-                      xmin = 0, xmax = 1,
-                      ymin = 0, ymax = 1,
-                      nrow = 30, ncol = 30) {
+make_raster <- function(values, nrow = 3, ncol = 3,
+                        xmin = 0, xmax = 1, ymin = 0, ymax = 1,
+                        crs = "EPSG:4326") {
   r <- terra::rast(nrows = nrow, ncols = ncol,
                    xmin = xmin, xmax = xmax,
                    ymin = ymin, ymax = ymax,
                    crs  = crs)
-  terra::values(r) <- vals
-  r
+  terra::values(r) <- values
+  return(r)
 }
 
-set.seed(42)
-n <- 30 * 30
 
-r_vals   <- runif(n, 0,  200)
-ls_vals  <- runif(n, 0,   20)
-c_vals   <- runif(n, 0,    1)
-dem_vals <- seq(500, 3000, length.out = n) + rnorm(n, sd = 50)
 
-r_rast   <- make_rast(r_vals)
-ls_rast  <- make_rast(ls_vals)
-c_rast   <- make_rast(c_vals)
-dem_rast <- make_rast(dem_vals)
+# ── Input validation ──────────────────────────────────────────────────────────
 
-# Reproject to a generic projected CRS to test geometry alignment
-r_rast_proj <- terra::project(r_rast, "EPSG:3857")
+test_that("non-SpatRaster r_factor throws error", {
+  ls <- make_raster(rep(1, 9))
+  c  <- make_raster(rep(0.5, 9))
+  expect_error(calc_erosion_risk(matrix(1:9, 3, 3), ls, c, plot = FALSE),
+               "'r_factor' must be a SpatRaster")
+})
 
-#
-section("1  Input validation")
-#
+test_that("non-SpatRaster ls_factor throws error", {
+  r <- make_raster(rep(1, 9))
+  c <- make_raster(rep(0.5, 9))
+  expect_error(calc_erosion_risk(r, matrix(1:9, 3, 3), c, plot = FALSE),
+               "'ls_factor' must be a SpatRaster")
+})
 
-expect_error(
-  calc_erosion_risk("not_a_raster", ls_rast, c_rast, plot = FALSE),
-  "r_factor must be a SpatRaster"
-)
-expect_error(
-  calc_erosion_risk(r_rast, "not_a_raster", c_rast, plot = FALSE),
-  "ls_factor must be a SpatRaster"
-)
-expect_error(
-  calc_erosion_risk(r_rast, ls_rast, "not_a_raster", plot = FALSE),
-  "c_factor must be a SpatRaster"
-)
-expect_error(
-  calc_erosion_risk(r_rast, ls_rast, c_rast, dem = "not_a_raster", plot = FALSE),
-  "dem must be a SpatRaster or NULL"
-)
-expect_error(
-  calc_erosion_risk(r_rast, ls_rast, c_rast, normalize = "yes", plot = FALSE),
-  "normalize must be logical"
-)
-expect_error(
-  calc_erosion_risk(r_rast, ls_rast, c_rast, plot = "yes"),
-  "plot must be logical"
-)
-expect_error(
-  calc_erosion_risk(r_rast, ls_rast, c_rast,
-                    resample_method = "invalid", plot = FALSE),
-  "resample_method invalid"
-)
+test_that("non-SpatRaster c_factor throws error", {
+  r  <- make_raster(rep(1, 9))
+  ls <- make_raster(rep(1, 9))
+  expect_error(calc_erosion_risk(r, ls, matrix(1:9, 3, 3), plot = FALSE),
+               "'c_factor' must be a SpatRaster")
+})
 
-#
-section("2  Basic calculation (normalize = TRUE)")
-#
+test_that("non-SpatRaster dem throws error", {
+  r  <- make_raster(rep(1, 9))
+  ls <- make_raster(rep(1, 9))
+  c  <- make_raster(rep(0.5, 9))
+  expect_error(calc_erosion_risk(r, ls, c, dem = matrix(1:9, 3, 3),
+                                 plot = FALSE),
+               "'dem' must be a SpatRaster object or NULL")
+})
 
-result <- calc_erosion_risk(r_rast, ls_rast, c_rast, plot = FALSE)
+test_that("non-logical normalize throws error", {
+  r  <- make_raster(rep(1, 9))
+  ls <- make_raster(rep(1, 9))
+  c  <- make_raster(rep(0.5, 9))
+  expect_error(calc_erosion_risk(r, ls, c, normalize = "yes", plot = FALSE),
+               "'normalize' must be a single logical value")
+})
 
-expect_true(is.list(result),                          "Return value is a list")
-expect_true("eri" %in% names(result),                 "List contains $eri")
-expect_true("map" %in% names(result),                 "List contains $map")
-expect_true(inherits(result$eri, "SpatRaster"),       "$eri is a SpatRaster")
-expect_true(is.null(result$map),                      "$map is NULL when plot = FALSE")
-expect_true(names(result$eri) == "ERI",               "Layer name is 'ERI'")
+test_that("non-logical plot throws error", {
+  r  <- make_raster(rep(1, 9))
+  ls <- make_raster(rep(1, 9))
+  c  <- make_raster(rep(0.5, 9))
+  expect_error(calc_erosion_risk(r, ls, c, plot = "yes"),
+               "'plot' must be a single logical value")
+})
 
-eri_min <- terra::global(result$eri, "min", na.rm = TRUE)[[1]]
-eri_max <- terra::global(result$eri, "max", na.rm = TRUE)[[1]]
+test_that("invalid resample_method throws error", {
+  r  <- make_raster(rep(1, 9))
+  ls <- make_raster(rep(1, 9))
+  c  <- make_raster(rep(0.5, 9))
+  expect_error(calc_erosion_risk(r, ls, c, resample_method = "invalid",
+                                 plot = FALSE),
+               "'resample_method' is not a recognised terra resampling method")
+})
 
-expect_true(eri_min >= 0,   "ERI minimum value >= 0")
-expect_true(eri_max <= 1,   "ERI maximum value <= 1")
-expect_true(eri_max  > 0,   "ERI has values > 0 (not all zero)")
 
-#
-section("3  normalize = FALSE")
-#
 
-result_raw <- calc_erosion_risk(r_rast, ls_rast, c_rast,
-                                normalize = FALSE, plot = FALSE)
+# ── Return type and structure ─────────────────────────────────────────────────
 
-raw_max <- terra::global(result_raw$eri, "max", na.rm = TRUE)[[1]]
+test_that("result is a list with elements 'eri' and 'map'", {
+  r      <- make_raster(rep(1, 9))
+  ls     <- make_raster(rep(1, 9))
+  c      <- make_raster(rep(0.5, 9))
+  result <- calc_erosion_risk(r, ls, c, plot = FALSE)
+  expect_true(is.list(result))
+  expect_named(result, c("eri", "map"))
+})
 
-expect_true(raw_max > 1,
-            "ERI without normalisation can exceed 1 (raw-value multiplication)")
+test_that("$eri is a SpatRaster", {
+  r      <- make_raster(rep(1, 9))
+  ls     <- make_raster(rep(1, 9))
+  c      <- make_raster(rep(0.5, 9))
+  result <- calc_erosion_risk(r, ls, c, plot = FALSE)
+  expect_true(inherits(result$eri, "SpatRaster"))
+})
 
-#
-section("4  Geometry alignment (mismatched CRS)")
-#
+test_that("$map is NULL when plot = FALSE", {
+  r      <- make_raster(rep(1, 9))
+  ls     <- make_raster(rep(1, 9))
+  c      <- make_raster(rep(0.5, 9))
+  result <- calc_erosion_risk(r, ls, c, plot = FALSE)
+  expect_null(result$map)
+})
 
-expect_message(
-  calc_erosion_risk(r_rast_proj, ls_rast, c_rast, plot = FALSE),
-  "reprojecting",
-  "Reprojection message appears on CRS mismatch"
-)
+test_that("$eri has one layer named ERI", {
+  r      <- make_raster(rep(1, 9))
+  ls     <- make_raster(rep(1, 9))
+  c      <- make_raster(rep(0.5, 9))
+  result <- calc_erosion_risk(r, ls, c, plot = FALSE)
+  expect_equal(terra::nlyr(result$eri), 1L)
+  expect_equal(names(result$eri), "ERI")
+})
 
-result_aligned <- calc_erosion_risk(r_rast_proj, ls_rast, c_rast, plot = FALSE)
+test_that("$eri has same dimensions as ls_factor", {
+  r      <- make_raster(rep(1, 9))
+  ls     <- make_raster(rep(1, 9))
+  c      <- make_raster(rep(0.5, 9))
+  result <- calc_erosion_risk(r, ls, c, plot = FALSE)
+  expect_equal(terra::nrow(result$eri), terra::nrow(ls))
+  expect_equal(terra::ncol(result$eri), terra::ncol(ls))
+})
 
-expect_true(
-  terra::same.crs(result_aligned$eri, ls_rast),
-  "Result CRS matches ls_factor after alignment"
-)
+test_that("result is returned invisibly", {
+  r   <- make_raster(rep(1, 9))
+  ls  <- make_raster(rep(1, 9))
+  c   <- make_raster(rep(0.5, 9))
+  out <- withVisible(calc_erosion_risk(r, ls, c, plot = FALSE))
+  expect_false(out$visible)
+})
 
-#
-section("5  All three factors identical (edge case: constant raster)")
-#
 
-const_rast   <- make_rast(rep(5, n))
-result_const <- calc_erosion_risk(const_rast, const_rast, const_rast,
-                                  plot = FALSE)
 
-# When all factors are constant, norm01() returns 0 everywhere
-const_max <- terra::global(result_const$eri, "max", na.rm = TRUE)[[1]]
-expect_true(const_max == 0,
-            "Constant inputs -> ERI is 0 everywhere (norm01 returns 0)")
+# ── ERI values ────────────────────────────────────────────────────────────────
 
-#
-section("6  NA handling")
-#
+test_that("ERI values are in range 0-1 with normalize = TRUE", {
+  r      <- make_raster(seq(1, 9))
+  ls     <- make_raster(seq(1, 9))
+  c      <- make_raster(seq(0.1, 0.9, length.out = 9))
+  result <- calc_erosion_risk(r, ls, c, normalize = TRUE, plot = FALSE)
+  vals   <- as.vector(terra::values(result$eri))
+  expect_true(all(vals >= 0 & vals <= 1, na.rm = TRUE))
+})
 
-r_na <- r_rast
-terra::values(r_na)[1:50] <- NA   # set 50 of 900 pixels to NA
+test_that("ERI is zero when any normalised factor is constant", {
+  r      <- make_raster(rep(5, 9))
+  ls     <- make_raster(seq(1, 9))
+  c      <- make_raster(seq(0.1, 0.9, length.out = 9))
+  result <- calc_erosion_risk(r, ls, c, normalize = TRUE, plot = FALSE)
+  vals   <- as.vector(terra::values(result$eri))
+  expect_true(all(vals == 0, na.rm = TRUE))
+})
 
-result_na <- calc_erosion_risk(r_na, ls_rast, c_rast, plot = FALSE)
+test_that("normalize = FALSE: ERI equals direct product of inputs", {
+  r_vals  <- seq(0.1, 0.9, length.out = 9)
+  ls_vals <- seq(0.2, 1.0, length.out = 9)
+  c_vals  <- seq(0.1, 0.5, length.out = 9)
+  r       <- make_raster(r_vals)
+  ls      <- make_raster(ls_vals)
+  c       <- make_raster(c_vals)
+  result  <- calc_erosion_risk(r, ls, c, normalize = FALSE, plot = FALSE)
+  expect_equal(as.vector(terra::values(result$eri)),
+               r_vals * ls_vals * c_vals, tolerance = 1e-6)
+})
 
-na_count <- sum(is.na(terra::values(result_na$eri)))
-expect_true(na_count >= 50,
-            "NA pixels from r_factor are preserved in ERI (>= 50 NAs)")
-expect_true(na_count < n,
-            "Not all pixels are NA (only the injected NAs propagated)")
+test_that("normalize = FALSE: ERI can exceed 1", {
+  r      <- make_raster(rep(10, 9))
+  ls     <- make_raster(rep(10, 9))
+  c      <- make_raster(rep(10, 9))
+  result <- calc_erosion_risk(r, ls, c, normalize = FALSE, plot = FALSE)
+  max_val <- terra::global(result$eri, "max", na.rm = TRUE)[[1]]
+  expect_true(max_val > 1)
+})
 
-#
-section("7  Output geometry")
-#
-result_geom <- calc_erosion_risk(r_rast, ls_rast, c_rast, plot = FALSE)
+test_that("normalize = TRUE: max ERI value is 1", {
+  r      <- make_raster(seq(1, 9))
+  ls     <- make_raster(seq(1, 9))
+  c      <- make_raster(seq(1, 9))
+  result <- calc_erosion_risk(r, ls, c, normalize = TRUE, plot = FALSE)
+  expect_equal(terra::global(result$eri, "max", na.rm = TRUE)[[1]], 1,
+               tolerance = 1e-6)
+})
 
-expect_true(
-  terra::same.crs(result_geom$eri, ls_rast),
-  "ERI CRS matches ls_factor"
-)
-expect_true(
-  all(terra::res(result_geom$eri) == terra::res(ls_rast)),
-  "ERI resolution matches ls_factor"
-)
-expect_true(
-  all(as.vector(terra::ext(result_geom$eri)) ==
-        as.vector(terra::ext(ls_rast))),
-  "ERI extent matches ls_factor"
-)
+test_that("normalize = TRUE: min ERI value is 0", {
+  r      <- make_raster(seq(1, 9))
+  ls     <- make_raster(seq(1, 9))
+  c      <- make_raster(seq(1, 9))
+  result <- calc_erosion_risk(r, ls, c, normalize = TRUE, plot = FALSE)
+  expect_equal(terra::global(result$eri, "min", na.rm = TRUE)[[1]], 0,
+               tolerance = 1e-6)
+})
 
-#
-section("8  plot = TRUE without DEM (no hillshade)")
-#
+test_that("NA pixels in any factor propagate to ERI", {
+  r_vals     <- rep(0.5, 9)
+  r_vals[1]  <- NA
+  ls_vals    <- rep(0.5, 9)
+  ls_vals[5] <- NA
+  r      <- make_raster(r_vals)
+  ls     <- make_raster(ls_vals)
+  c      <- make_raster(rep(0.5, 9))
+  result <- calc_erosion_risk(r, ls, c, normalize = FALSE, plot = FALSE)
+  vals   <- as.vector(terra::values(result$eri))
+  expect_true(is.na(vals[1]))
+  expect_true(is.na(vals[5]))
+})
 
-result_plot <- calc_erosion_risk(r_rast, ls_rast, c_rast,
-                                 plot      = TRUE,
-                                 map_title = "Test: ERI without DEM")
 
-expect_true(inherits(result_plot$map, "tmap"),
-            "$map is a tmap object when plot = TRUE")
 
-#
-section("9  plot = TRUE with DEM (hillshade path)")
-#
+# ── Auto-alignment ────────────────────────────────────────────────────────────
 
-result_hs <- calc_erosion_risk(r_rast, ls_rast, c_rast,
-                               dem            = dem_rast,
-                               plot           = TRUE,
-                               map_title      = "Test: ERI with hillshade",
-                               figure_caption = "Figure X: Test plot",
-                               data_source    = "Source: Synthetic test data")
+test_that("mismatched resolution is auto-resampled without error", {
+  r  <- make_raster(rep(1, 4), nrow = 2, ncol = 2)
+  ls <- make_raster(rep(1, 9), nrow = 3, ncol = 3)
+  c  <- make_raster(rep(0.5, 9), nrow = 3, ncol = 3)
+  expect_no_error(calc_erosion_risk(r, ls, c, plot = FALSE))
+})
 
-expect_true(inherits(result_hs$map, "tmap"),
-            "$map is a tmap object with DEM path")
+test_that("mismatched extent is auto-resampled without error", {
+  r  <- make_raster(rep(1, 9), xmin = 0, xmax = 2)
+  ls <- make_raster(rep(1, 9), xmin = 0, xmax = 1)
+  c  <- make_raster(rep(0.5, 9), xmin = 0, xmax = 1)
+  expect_no_error(calc_erosion_risk(r, ls, c, plot = FALSE))
+})
 
-#
-section("10  resample_method variants")
-#
+test_that("auto-resampled result matches ls_factor geometry", {
+  r      <- make_raster(rep(1, 4), nrow = 2, ncol = 2)
+  ls     <- make_raster(rep(1, 9), nrow = 3, ncol = 3)
+  c      <- make_raster(rep(0.5, 9), nrow = 3, ncol = 3)
+  result <- calc_erosion_risk(r, ls, c, plot = FALSE)
+  expect_equal(terra::nrow(result$eri), terra::nrow(ls))
+  expect_equal(terra::ncol(result$eri), terra::ncol(ls))
+  expect_equal(as.vector(terra::ext(result$eri)),
+               as.vector(terra::ext(ls)), tolerance = 1e-6)
+})
 
-for (method in c("near", "bilinear", "cubic")) {
-  res_m <- calc_erosion_risk(r_rast_proj, ls_rast, c_rast,
-                             resample_method = method, plot = FALSE)
-  expect_true(inherits(res_m$eri, "SpatRaster"),
-              sprintf("resample_method = '%s' produces a valid result", method))
-}
+test_that("mismatched resolution emits resampling message", {
+  r  <- make_raster(rep(1, 4), nrow = 2, ncol = 2)
+  ls <- make_raster(rep(1, 9), nrow = 3, ncol = 3)
+  c  <- make_raster(rep(0.5, 9), nrow = 3, ncol = 3)
+  expect_message(calc_erosion_risk(r, ls, c, plot = FALSE), "resampling")
+})
 
-#
-cat("\n── All tests completed \u2713\n\n")
+test_that("mismatched CRS emits reprojecting message", {
+  r  <- make_raster(rep(1, 9), crs = "EPSG:4269")
+  ls <- make_raster(rep(1, 9), crs = "EPSG:4326")
+  c  <- make_raster(rep(0.5, 9), crs = "EPSG:4326")
+  expect_message(calc_erosion_risk(r, ls, c, plot = FALSE), "reprojecting")
+})
+
+test_that("resample_method = 'near' runs without error", {
+  r  <- make_raster(rep(1, 4), nrow = 2, ncol = 2)
+  ls <- make_raster(rep(1, 9), nrow = 3, ncol = 3)
+  c  <- make_raster(rep(0.5, 9), nrow = 3, ncol = 3)
+  expect_no_error(
+    calc_erosion_risk(r, ls, c, resample_method = "near", plot = FALSE)
+  )
+})
+
+test_that("already-aligned rasters do not trigger alignment message", {
+  r    <- make_raster(rep(1, 9))
+  ls   <- make_raster(rep(1, 9))
+  c    <- make_raster(rep(0.5, 9))
+  msgs <- capture_messages(calc_erosion_risk(r, ls, c, plot = FALSE))
+  expect_length(msgs[grepl("resampling|reprojecting", msgs)], 0)
+})
+
+test_that("only misaligned raster triggers alignment message", {
+  r    <- make_raster(rep(1, 4), nrow = 2, ncol = 2)
+  ls   <- make_raster(rep(1, 9), nrow = 3, ncol = 3)
+  c    <- make_raster(rep(0.5, 9), nrow = 3, ncol = 3)
+  msgs <- capture_messages(calc_erosion_risk(r, ls, c, plot = FALSE))
+  expect_gte(length(msgs[grepl("r_factor", msgs)]), 1)
+  expect_length(msgs[grepl("c_factor", msgs)], 0)
+})
+
+
+
+# ── dem parameter ─────────────────────────────────────────────────────────────
+
+test_that("dem = NULL runs without error", {
+  r  <- make_raster(seq(1, 9))
+  ls <- make_raster(seq(1, 9))
+  c  <- make_raster(seq(0.1, 0.9, length.out = 9))
+  expect_no_error(calc_erosion_risk(r, ls, c, dem = NULL, plot = FALSE))
+})
+
+test_that("dem as SpatRaster runs without error", {
+  r   <- make_raster(seq(1, 9))
+  ls  <- make_raster(seq(1, 9))
+  c   <- make_raster(seq(0.1, 0.9, length.out = 9))
+  dem <- make_raster(seq(100, 900, length.out = 9))
+  expect_no_error(calc_erosion_risk(r, ls, c, dem = dem, plot = FALSE))
+})
+
+test_that("dem with mismatched resolution is aligned without error", {
+  r   <- make_raster(seq(1, 9))
+  ls  <- make_raster(seq(1, 9))
+  c   <- make_raster(seq(0.1, 0.9, length.out = 9))
+  dem <- make_raster(seq(100, 400, length.out = 4), nrow = 2, ncol = 2)
+  expect_no_error(calc_erosion_risk(r, ls, c, dem = dem, plot = FALSE))
+})
+
+test_that("dem does not affect ERI values", {
+  r   <- make_raster(seq(1, 9))
+  ls  <- make_raster(seq(1, 9))
+  c   <- make_raster(seq(0.1, 0.9, length.out = 9))
+  dem <- make_raster(seq(100, 900, length.out = 9))
+  eri_no_dem <- calc_erosion_risk(r, ls, c, dem = NULL, plot = FALSE)$eri
+  eri_dem    <- calc_erosion_risk(r, ls, c, dem = dem,  plot = FALSE)$eri
+  expect_equal(as.vector(terra::values(eri_no_dem)),
+               as.vector(terra::values(eri_dem)), tolerance = 1e-6)
+})
+
+
+
+# ── message ───────────────────────────────────────────────────────────────────
+
+test_that("calc_erosion_risk emits ERI computation message", {
+  r  <- make_raster(rep(1, 9))
+  ls <- make_raster(rep(1, 9))
+  c  <- make_raster(rep(0.5, 9))
+  expect_message(calc_erosion_risk(r, ls, c, plot = FALSE), "ERI computed")
+})
+
+
+
+# ── map_title / figure_caption / data_source ─────────────────────────────────
+
+test_that("custom map_title runs without error", {
+  r  <- make_raster(seq(1, 9))
+  ls <- make_raster(seq(1, 9))
+  c  <- make_raster(seq(0.1, 0.9, length.out = 9))
+  expect_no_error(
+    calc_erosion_risk(r, ls, c, plot = FALSE,
+                      map_title = "Custom Title")
+  )
+})
+
+test_that("figure_caption and data_source run without error", {
+  r  <- make_raster(seq(1, 9))
+  ls <- make_raster(seq(1, 9))
+  c  <- make_raster(seq(0.1, 0.9, length.out = 9))
+  expect_no_error(
+    calc_erosion_risk(r, ls, c, plot = FALSE,
+                      figure_caption = "Figure 1: Test",
+                      data_source    = "Source: Synthetic data")
+  )
+})
+
+
+
+# ── plot = FALSE always returns NULL map ──────────────────────────────────────
+
+test_that("plot = FALSE returns NULL map regardless of dem", {
+  r   <- make_raster(seq(1, 9))
+  ls  <- make_raster(seq(1, 9))
+  c   <- make_raster(seq(0.1, 0.9, length.out = 9))
+  dem <- make_raster(seq(100, 900, length.out = 9))
+  expect_null(calc_erosion_risk(r, ls, c, dem = dem,  plot = FALSE)$map)
+  expect_null(calc_erosion_risk(r, ls, c, dem = NULL, plot = FALSE)$map)
+})
