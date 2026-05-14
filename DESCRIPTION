@@ -14,9 +14,7 @@ Imports:
     kgc,
     terra,
     tmap, 
-    sf,
-    rnaturalearth,
-    rnaturalearthdata
+    sf
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3

@@ -11,7 +11,10 @@ calc_erosion_risk(
   dem = NULL,
   normalize = TRUE,
   resample_method = "bilinear",
-  plot = TRUE
+  plot = TRUE,
+  map_title = "Soil Erosivity",
+  figure_caption = NULL,
+  data_source = NULL
 )
 }
 \arguments{
@@ -22,9 +25,9 @@ Used as the reference grid for alignment.}
 
 \item{c_factor}{SpatRaster. Output of \code{calc_c_factor()}.}
 
-\item{dem}{SpatRaster or NULL. Digital Elevation Model used to compute
-hillshade for the map background. If \code{NULL} (default), no hillshade
-is rendered and the ERI is plotted on a white background.}
+\item{dem}{SpatRaster or NULL. Digital Elevation Model used to
+compute hillshade for the map background.  If \code{NULL} (default),
+the ERI is plotted on a white / light-grey background without hillshade.}
 
 \item{normalize}{Logical. If \code{TRUE} (default), each factor is
 min-max normalised to 0-1 before multiplication.}
@@ -32,13 +35,28 @@ min-max normalised to 0-1 before multiplication.}
 \item{resample_method}{Character. Resampling method passed to
 \code{terra::resample()}. Default: \code{"bilinear"}.}
 
-\item{plot}{Logical. If \code{TRUE} (default), displays a publication-style
-map of the ERI with hillshade background (if \code{dem} is supplied),
-north arrow, scale bar, and gradient legends.}
+\item{plot}{Logical. If \code{TRUE} (default), displays a
+publication-style map of the ERI.}
+
+\item{map_title}{Character. Title printed at the top of the map frame.
+Default: \code{"Soil Erosivity"}.}
+
+\item{figure_caption}{Character. Figure caption printed below the map
+frame (e.g. \code{"Figure 4: Map of Erosivity Index"}).
+Default: \code{NULL} (no caption).}
+
+\item{data_source}{Character. Data-source string printed in small type
+below the map frame (e.g. NASA JPL / Sentinel-2 credits).
+Default: \code{NULL} (no source line).}
 }
 \value{
-SpatRaster (0-1) with Erosion Risk Index values, named
-\code{"ERI"}.
+Invisibly returns a list with two elements:
+\describe{
+\item{\code{eri}}{SpatRaster (0-1) with Erosion Risk Index values,
+named \code{"ERI"}.}
+\item{\code{map}}{A \code{tmap} object (or \code{NULL} if
+\code{plot = FALSE}).}
+}
 }
 \description{
 Normalises R, LS and C to 0-1 and multiplies them pixel-wise to produce
@@ -53,10 +71,21 @@ The ERI is calculated as:
 where each factor is min-max normalised to \eqn{[0, 1]} before
 multiplication. Higher ERI values indicate greater erosion hazard.
 
-If \code{plot = TRUE} and \code{dem} is supplied, the ERI is displayed
-overlaid on a hillshade computed internally from the DEM, matching the
-cartographic style of the aridRUSLE output maps. The plot includes a
-north arrow, scale bar, and two gradient legends (ERI and hillshade).
+If \code{plot = TRUE}, the ERI is displayed in a publication-quality
+cartographic layout matching the aridRUSLE house style:
+\itemize{
+\item Main map: ERI overlay on hillshade background (if \code{dem}
+supplied), axes with coordinate grid, cream-to-brown colour ramp.
+\item Legend panel: gradient colour bar for the Erosivity Index and,
+when a DEM is supplied, a separate bar for the Hillshade.
+\item Cartographic furniture: north arrow (top-right of main map),
+scale bar (bottom-left of main map).
+\item Source line and figure caption below the map frame.
+}
+
+The map is rendered with \pkg{tmap} (>= 4.0) in \code{"plot"} mode and
+returned invisibly as a \code{tmap} object so that it can be saved with
+\code{tmap::tmap_save()}.
 }
 \examples{
 \dontrun{
@@ -65,14 +94,21 @@ ls  <- calc_ls_factor(dem)
 c   <- calc_c_factor(ndvi_masked)
 dem <- terra::rast("srtm.tif")
 
-# ERI with hillshade background map
-eri <- calc_erosion_risk(r, ls, c, dem = dem)
+# ERI with full publication layout
+result <- calc_erosion_risk(r, ls, c, dem = dem,
+  map_title      = "Soil Erosivity for Elqui Valley, Coquimbo Region",
+  figure_caption = "Figure 4: Map of Erosivity Index",
+  data_source    = paste0(
+    "Source: NASA JPL. (2013). NASA Shuttle Radar Topography Mission ",
+    "(SRTM) Global 1 arc second (30 m). NASA EOSDIS Land Processes ",
+    "Distributed Active Archive Center (LP DAAC)"))
 
-# Without hillshade
-eri <- calc_erosion_risk(r, ls, c)
+# Save the map to a file
+tmap::tmap_save(result$map, "erosion_risk_map.png",
+                width = 250, height = 200, units = "mm", dpi = 300)
 
-# Without plot
-eri <- calc_erosion_risk(r, ls, c, plot = FALSE)
+# Access only the raster
+eri_raster <- result$eri
 }
 }
 \references{

@@ -3,5 +3,4 @@ library(kgc)
 library(terra)
 library(tmap)
 library(sf)
-library(rnaturalearth)
-library(rnaturalearthdata)
+
