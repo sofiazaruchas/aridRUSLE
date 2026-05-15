@@ -1,6 +1,7 @@
 library(devtools)
 library(kgc)
 library(terra)
-library(tmap)
-library(sf)
+library(gglot2)
+library(ggspatial)
+library(tidyterra)
 

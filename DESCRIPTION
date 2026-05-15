@@ -13,8 +13,9 @@ BugReports: https://github.com/sofiazaruchas/aridRUSLE/issues
 Imports: 
     kgc,
     terra,
-    tmap, 
-    sf
+    ggplot2,
+    tidyterra,
+    ggspatial
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
