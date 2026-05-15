@@ -168,10 +168,7 @@ test_that("LS-factor increases with steeper slope", {
 })
 
 test_that("larger cell size produces larger LS values (all else equal)", {
-  # Same slope angle, different resolution.
-  # Rise scales with cell size to keep angle constant:
-  # 30m cell: 10m rise -> tan(beta) = 10/30
-  # 90m cell: 30m rise -> tan(beta) = 30/90  (same angle)
+
   r_30m <- terra::rast(
     nrows = 5, ncols = 5,
     xmin = 0, xmax = 150, ymin = 0, ymax = 150,

@@ -11,7 +11,7 @@ make_raster <- function(values, nrow = 3, ncol = 3,
 
 
 
-# ── Input validation ──────────────────────────────────────────────────────────
+# Input validation
 
 test_that("non-SpatRaster r_factor throws error", {
   ls <- make_raster(rep(1, 9))
@@ -62,7 +62,7 @@ test_that("invalid resample_method throws error", {
 
 
 
-# ── Return type and structure ─────────────────────────────────────────────────
+# Return type and structure
 
 test_that("result is a list with elements 'eri' and 'map'", {
   r      <- make_raster(rep(1, 9))
@@ -117,7 +117,7 @@ test_that("result is returned invisibly", {
 
 
 
-# ── ERI values ────────────────────────────────────────────────────────────────
+# ERI values
 
 test_that("ERI values are in range 0-1 with normalize = TRUE", {
   r      <- make_raster(seq(1, 9))
@@ -191,7 +191,7 @@ test_that("NA pixels in any factor propagate to ERI", {
 
 
 
-# ── Auto-alignment ────────────────────────────────────────────────────────────
+# Auto-alignment
 
 test_that("mismatched resolution is auto-resampled without error", {
   r  <- make_raster(rep(1, 4), nrow = 2, ncol = 2)
@@ -260,7 +260,7 @@ test_that("only misaligned raster triggers alignment message", {
 
 
 
-# ── message ───────────────────────────────────────────────────────────────────
+# message
 
 test_that("calc_erosion_risk emits ERI computation message", {
   r  <- make_raster(rep(1, 9))
@@ -271,7 +271,7 @@ test_that("calc_erosion_risk emits ERI computation message", {
 
 
 
-# ── map_title / figure_caption / data_source ─────────────────────────────────
+# map_title / figure_caption / data_source
 
 test_that("custom map_title runs without error", {
   r  <- make_raster(seq(1, 9))
@@ -304,7 +304,44 @@ test_that("data_source runs without error", {
 
 
 
-# ── plot = FALSE always returns NULL map ──────────────────────────────────────
+# plot = TRUE returns ggplot object
+
+test_that("plot = TRUE returns a ggplot object", {
+  r  <- make_raster(seq(1, 9))
+  ls <- make_raster(seq(1, 9))
+  c  <- make_raster(seq(0.1, 0.9, length.out = 9))
+  pdf(NULL)
+  on.exit(dev.off(), add = TRUE)
+  result <- calc_erosion_risk(r, ls, c, plot = TRUE)
+  expect_true(inherits(result$map, "ggplot"))
+})
+
+test_that("plot = TRUE returns correct ERI values", {
+  r_vals  <- seq(0.1, 0.9, length.out = 9)
+  ls_vals <- seq(0.2, 1.0, length.out = 9)
+  c_vals  <- seq(0.1, 0.5, length.out = 9)
+  r       <- make_raster(r_vals)
+  ls      <- make_raster(ls_vals)
+  c       <- make_raster(c_vals)
+  pdf(NULL)
+  on.exit(dev.off(), add = TRUE)
+  result <- calc_erosion_risk(r, ls, c, normalize = FALSE, plot = TRUE)
+  expect_equal(as.vector(terra::values(result$eri)),
+               r_vals * ls_vals * c_vals, tolerance = 1e-6)
+})
+
+test_that("plot = TRUE runs without error or warning", {
+  r  <- make_raster(seq(1, 9))
+  ls <- make_raster(seq(1, 9))
+  c  <- make_raster(seq(0.1, 0.9, length.out = 9))
+  pdf(NULL)
+  on.exit(dev.off(), add = TRUE)
+  expect_no_warning(calc_erosion_risk(r, ls, c, plot = TRUE))
+})
+
+
+
+# plot = FALSE always returns NULL map
 
 test_that("plot = FALSE returns NULL map", {
   r  <- make_raster(seq(1, 9))

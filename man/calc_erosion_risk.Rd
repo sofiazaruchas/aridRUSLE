@@ -36,18 +36,18 @@ publication-style map of the ERI.}
 \item{map_title}{Character. Title printed above the map.
 Default: \code{"Soil Erosivity"}.}
 
-\item{figure_caption}{Character. Figure caption printed below the map.
-Default: \code{NULL} (no caption).}
+\item{figure_caption}{Character. Figure caption printed below the map
+as a plot subtitle. Default: \code{NULL} (no caption).}
 
-\item{data_source}{Character. Data-source string printed below the map.
-Default: \code{NULL} (no source line).}
+\item{data_source}{Character. Data-source string printed below the map
+in small type. Default: \code{NULL} (no source line).}
 }
 \value{
 Invisibly returns a list with two elements:
 \describe{
 \item{\code{eri}}{SpatRaster (0-1) with Erosion Risk Index values,
 named \code{"ERI"}.}
-\item{\code{map}}{A \code{tmap} object, or \code{NULL} if
+\item{\code{map}}{A \code{ggplot} object, or \code{NULL} if
 \code{plot = FALSE}.}
 }
 }
@@ -65,9 +65,10 @@ where each factor is min-max normalised to \eqn{[0, 1]} before
 multiplication. Higher ERI values indicate greater erosion hazard.
 
 If \code{plot = TRUE}, the ERI is displayed in a publication-quality
-cartographic layout with north arrow, scale bar, coordinate grid,
-gradient legend, title, and optional figure caption and data source line.
-The map is rendered with \pkg{tmap} (>= 4.0) in \code{"plot"} mode.
+cartographic layout built with \pkg{ggplot2}, \pkg{tidyterra} and
+\pkg{ggspatial}: cream-to-brown colour ramp, coordinate grid with degree
+labels, north arrow, scale bar, continuous legend, and optional title,
+figure caption and data source line.
 }
 \examples{
 \dontrun{
@@ -82,7 +83,7 @@ result <- calc_erosion_risk(r, ls, c,
   data_source    = "Source: NASA JPL (2013). SRTM Global 1 arc second.")
 
 # Save the map
-tmap::tmap_save(result$map, "erosion_risk_map.png",
+ggplot2::ggsave("erosion_risk_map.png", result$map,
                 width = 250, height = 200, units = "mm", dpi = 300)
 
 # Access only the raster

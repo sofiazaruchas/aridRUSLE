@@ -2,7 +2,7 @@
 # Combine R, LS, and C factors into an Erosion Risk Index (ERI).
 # ERI = R_norm x LS_norm x C_norm  (each factor normalised to 0-1)
 #
-# Requires: terra (>= 1.7-0), tmap (>= 4.0)
+# Requires: terra (>= 1.7-0), ggplot2, tidyterra, ggspatial
 
 #' Combine factors into an Erosion Risk Index (ERI)
 #'
@@ -18,9 +18,10 @@
 #' multiplication. Higher ERI values indicate greater erosion hazard.
 #'
 #' If \code{plot = TRUE}, the ERI is displayed in a publication-quality
-#' cartographic layout with north arrow, scale bar, coordinate grid,
-#' gradient legend, title, and optional figure caption and data source line.
-#' The map is rendered with \pkg{tmap} (>= 4.0) in \code{"plot"} mode.
+#' cartographic layout built with \pkg{ggplot2}, \pkg{tidyterra} and
+#' \pkg{ggspatial}: cream-to-brown colour ramp, coordinate grid with degree
+#' labels, north arrow, scale bar, continuous legend, and optional title,
+#' figure caption and data source line.
 #'
 #' @param r_factor  SpatRaster. Output of \code{calc_r_factor()}.
 #' @param ls_factor SpatRaster. Output of \code{calc_ls_factor()}.
@@ -34,16 +35,16 @@
 #'   publication-style map of the ERI.
 #' @param map_title Character. Title printed above the map.
 #'   Default: \code{"Soil Erosivity"}.
-#' @param figure_caption Character. Figure caption printed below the map.
-#'   Default: \code{NULL} (no caption).
-#' @param data_source Character. Data-source string printed below the map.
-#'   Default: \code{NULL} (no source line).
+#' @param figure_caption Character. Figure caption printed below the map
+#'   as a plot subtitle. Default: \code{NULL} (no caption).
+#' @param data_source Character. Data-source string printed below the map
+#'   in small type. Default: \code{NULL} (no source line).
 #'
 #' @return Invisibly returns a list with two elements:
 #' \describe{
 #'   \item{\code{eri}}{SpatRaster (0-1) with Erosion Risk Index values,
 #'     named \code{"ERI"}.}
-#'   \item{\code{map}}{A \code{tmap} object, or \code{NULL} if
+#'   \item{\code{map}}{A \code{ggplot} object, or \code{NULL} if
 #'     \code{plot = FALSE}.}
 #' }
 #'
@@ -66,7 +67,7 @@
 #'   data_source    = "Source: NASA JPL (2013). SRTM Global 1 arc second.")
 #'
 #' # Save the map
-#' tmap::tmap_save(result$map, "erosion_risk_map.png",
+#' ggplot2::ggsave("erosion_risk_map.png", result$map,
 #'                 width = 250, height = 200, units = "mm", dpi = 300)
 #'
 #' # Access only the raster
@@ -108,12 +109,10 @@ calc_erosion_risk <- function(r_factor,
   if (!requireNamespace("terra", quietly = TRUE))
     stop("Package 'terra' (>= 1.7-0) is required.")
   if (plot) {
-    if (!requireNamespace("tmap", quietly = TRUE))
-      stop("Package 'tmap' (>= 4.0) is required for plot = TRUE.")
-    tmap_ver <- utils::packageVersion("tmap")
-    if (tmap_ver < "4.0")
-      warning("tmap >= 4.0 is recommended. Some layout features may differ ",
-              "with version ", tmap_ver, ".")
+    for (pkg in c("ggplot2", "tidyterra", "ggspatial")) {
+      if (!requireNamespace(pkg, quietly = TRUE))
+        stop("Package '", pkg, "' is required for plot = TRUE.")
+    }
   }
 
   # Geometry helpers
@@ -162,6 +161,7 @@ calc_erosion_risk <- function(r_factor,
   }
 
   # Compute ERI
+
   eri        <- r * ls * c
   names(eri) <- "ERI"
 
@@ -174,100 +174,87 @@ calc_erosion_risk <- function(r_factor,
 
   if (plot) {
 
-    tmap::tmap_mode("plot")
+    # ERI colour palette
+    eri_colours <- c("#FFFFFF", "#F5E8C0", "#E8C97A", "#C8843A", "#8B4513")
 
-    # ERI colour palette: cream -> tan -> orange -> dark brown
-    eri_palette <- c("#FFFFFF", "#F5E8C0", "#E8C97A", "#C8843A", "#8B4513")
-
-    # Expand extent slightly to avoid clipping at map edges
-    ext_orig   <- terra::ext(eri)
-    x_pad      <- (ext_orig$xmax - ext_orig$xmin) * 0.02
-    y_pad      <- (ext_orig$ymax - ext_orig$ymin) * 0.02
-    ext_padded <- terra::ext(
-      ext_orig$xmin - x_pad, ext_orig$xmax + x_pad,
-      ext_orig$ymin - y_pad, ext_orig$ymax + y_pad
+    # Build caption string
+    caption_str <- paste(
+      c(data_source, figure_caption),
+      collapse = "\n"
     )
-    eri_padded <- terra::extend(eri, ext_padded)
+    if (nchar(trimws(caption_str)) == 0) caption_str <- NULL
 
-    map_obj <- tmap::tm_shape(eri_padded) +
-      tmap::tm_raster(
-        col        = "ERI",
-        col.scale  = tmap::tm_scale_continuous(
-          values   = eri_palette,
-          value.na = NA,
-          midpoint = NA
+    map_obj <- ggplot2::ggplot() +
+      tidyterra::geom_spatraster(data = eri) +
+      ggplot2::scale_fill_gradientn(
+        colours  = eri_colours,
+        na.value = NA,
+        name     = "Erosivity\nIndex"
+      ) +
+      ggspatial::annotation_north_arrow(
+        location = "tr",
+        which_north = "true",
+        height   = ggplot2::unit(1.2, "cm"),
+        width    = ggplot2::unit(1.0, "cm"),
+        style    = ggspatial::north_arrow_fancy_orienteering(
+          fill      = c("black", "white"),
+          line_col  = "grey20",
+          text_col  = "grey20",
+          text_size = 10
+        )
+      ) +
+      ggspatial::annotation_scale(
+        location   = "bl",
+        width_hint = 0.25,
+        text_cex   = 0.75,
+        line_width = 1,
+        height     = ggplot2::unit(0.3, "cm"),
+        pad_x      = ggplot2::unit(0.4, "cm"),
+        pad_y      = ggplot2::unit(0.4, "cm")
+      ) +
+      ggplot2::coord_sf(expand = FALSE) +
+      ggplot2::labs(
+        title   = map_title,
+        caption = caption_str
+      ) +
+      ggplot2::theme_bw(base_size = 11) +
+      ggplot2::theme(
+        # Title
+        plot.title         = ggplot2::element_text(
+          size   = 13,
+          hjust  = 0.5,
+          face   = "plain",
+          margin = ggplot2::margin(b = 6)
         ),
-        col.legend = tmap::tm_legend(
-          title       = "Erosivity Index\nValue range",
-          orientation = "portrait",
-          frame       = TRUE,
-          text.size   = 0.75
-        )
-      ) +
-      tmap::tm_graticules(
-        lines       = TRUE,
-        labels.size = 0.7,
-        ticks       = TRUE,
-        col         = "grey50",
-        lwd         = 0.5,
-        n.x         = 4,
-        n.y         = 5
-      ) +
-      tmap::tm_scalebar(
-        breaks      = c(0, 10, 20),
-        position    = tmap::tm_pos_in("left", "bottom"),
-        text.size   = 0.7,
-        color.dark  = "black",
-        color.light = "white",
-        lwd         = 1.2
-      ) +
-      tmap::tm_compass(
-        type      = "arrow",
-        position  = tmap::tm_pos_in("right", "top"),
-        size      = 2,
-        text.size = 0.9
-      ) +
-      tmap::tm_title(
-        text     = map_title,
-        size     = 1.1,
-        fontface = "plain",
-        position = tmap::tm_pos_out("center", "top")
-      ) +
-      tmap::tm_layout(
-        frame          = TRUE,
-        frame.lwd      = 1.2,
-        bg.color       = "white",
-        outer.bg.color = "white",
-        inner.margins  = c(0.05, 0.05, 0.05, 0.05),
-        outer.margins  = c(0.05, 0.02, 0.05, 0.02),
-        legend.outside          = TRUE,
-        legend.outside.position = "right",
-        legend.frame            = TRUE,
-        legend.text.size        = 0.75,
-        legend.title.size       = 0.85
+        # Caption
+        plot.caption       = ggplot2::element_text(
+          size  = 7,
+          hjust = 0,
+          color = "grey40"
+        ),
+        # Legend
+        legend.position    = "right",
+        legend.title       = ggplot2::element_text(size = 9),
+        legend.text        = ggplot2::element_text(size = 8),
+        legend.key.height  = ggplot2::unit(1.5, "cm"),
+        legend.key.width   = ggplot2::unit(0.4, "cm"),
+        legend.frame       = ggplot2::element_rect(
+          colour = "grey60", linewidth = 0.4
+        ),
+        # Axis
+        axis.text          = ggplot2::element_text(size = 8),
+        axis.title         = ggplot2::element_blank(),
+        # Panel
+        panel.grid.major   = ggplot2::element_line(
+          colour = "grey70", linewidth = 0.3, linetype = "dashed"
+        ),
+        panel.grid.minor   = ggplot2::element_blank(),
+        panel.border       = ggplot2::element_rect(
+          colour = "grey30", linewidth = 0.8
+        ),
+        # Margins
+        plot.margin        = ggplot2::margin(10, 10, 10, 10)
       )
-
-    # Optional source and caption
-    if (!is.null(data_source)) {
-      map_obj <- map_obj +
-        tmap::tm_credits(
-          text     = data_source,
-          size     = 0.5,
-          position = tmap::tm_pos_out("left", "bottom"),
-          align    = "left"
-        )
-    }
-
-    if (!is.null(figure_caption)) {
-      map_obj <- map_obj +
-        tmap::tm_credits(
-          text     = figure_caption,
-          size     = 0.65,
-          fontface = "bold",
-          position = tmap::tm_pos_out("center", "bottom"),
-          align    = "center"
-        )
-    }
 
     print(map_obj)
   }

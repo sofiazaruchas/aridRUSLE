@@ -318,7 +318,7 @@ test_that("smooth_w = 5 runs without error", {
 
 
 
-# ── min_water_ha ──────────────────────────────────────────────────────────────
+# min_water_ha
 
 test_that("min_water_ha = NULL masks all water pixels", {
   t      <- make_raster(rep(0.5, 9))
