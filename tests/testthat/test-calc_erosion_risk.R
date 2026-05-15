@@ -34,15 +34,6 @@ test_that("non-SpatRaster c_factor throws error", {
                "'c_factor' must be a SpatRaster")
 })
 
-test_that("non-SpatRaster dem throws error", {
-  r  <- make_raster(rep(1, 9))
-  ls <- make_raster(rep(1, 9))
-  c  <- make_raster(rep(0.5, 9))
-  expect_error(calc_erosion_risk(r, ls, c, dem = matrix(1:9, 3, 3),
-                                 plot = FALSE),
-               "'dem' must be a SpatRaster object or NULL")
-})
-
 test_that("non-logical normalize throws error", {
   r  <- make_raster(rep(1, 9))
   ls <- make_raster(rep(1, 9))
@@ -63,9 +54,10 @@ test_that("invalid resample_method throws error", {
   r  <- make_raster(rep(1, 9))
   ls <- make_raster(rep(1, 9))
   c  <- make_raster(rep(0.5, 9))
-  expect_error(calc_erosion_risk(r, ls, c, resample_method = "invalid",
-                                 plot = FALSE),
-               "'resample_method' is not a recognised terra resampling method")
+  expect_error(
+    calc_erosion_risk(r, ls, c, resample_method = "invalid", plot = FALSE),
+    "'resample_method' is not a recognised terra resampling method"
+  )
 })
 
 
@@ -162,8 +154,7 @@ test_that("normalize = FALSE: ERI can exceed 1", {
   ls     <- make_raster(rep(10, 9))
   c      <- make_raster(rep(10, 9))
   result <- calc_erosion_risk(r, ls, c, normalize = FALSE, plot = FALSE)
-  max_val <- terra::global(result$eri, "max", na.rm = TRUE)[[1]]
-  expect_true(max_val > 1)
+  expect_true(terra::global(result$eri, "max", na.rm = TRUE)[[1]] > 1)
 })
 
 test_that("normalize = TRUE: max ERI value is 1", {
@@ -269,44 +260,6 @@ test_that("only misaligned raster triggers alignment message", {
 
 
 
-# ── dem parameter ─────────────────────────────────────────────────────────────
-
-test_that("dem = NULL runs without error", {
-  r  <- make_raster(seq(1, 9))
-  ls <- make_raster(seq(1, 9))
-  c  <- make_raster(seq(0.1, 0.9, length.out = 9))
-  expect_no_error(calc_erosion_risk(r, ls, c, dem = NULL, plot = FALSE))
-})
-
-test_that("dem as SpatRaster runs without error", {
-  r   <- make_raster(seq(1, 9))
-  ls  <- make_raster(seq(1, 9))
-  c   <- make_raster(seq(0.1, 0.9, length.out = 9))
-  dem <- make_raster(seq(100, 900, length.out = 9))
-  expect_no_error(calc_erosion_risk(r, ls, c, dem = dem, plot = FALSE))
-})
-
-test_that("dem with mismatched resolution is aligned without error", {
-  r   <- make_raster(seq(1, 9))
-  ls  <- make_raster(seq(1, 9))
-  c   <- make_raster(seq(0.1, 0.9, length.out = 9))
-  dem <- make_raster(seq(100, 400, length.out = 4), nrow = 2, ncol = 2)
-  expect_no_error(calc_erosion_risk(r, ls, c, dem = dem, plot = FALSE))
-})
-
-test_that("dem does not affect ERI values", {
-  r   <- make_raster(seq(1, 9))
-  ls  <- make_raster(seq(1, 9))
-  c   <- make_raster(seq(0.1, 0.9, length.out = 9))
-  dem <- make_raster(seq(100, 900, length.out = 9))
-  eri_no_dem <- calc_erosion_risk(r, ls, c, dem = NULL, plot = FALSE)$eri
-  eri_dem    <- calc_erosion_risk(r, ls, c, dem = dem,  plot = FALSE)$eri
-  expect_equal(as.vector(terra::values(eri_no_dem)),
-               as.vector(terra::values(eri_dem)), tolerance = 1e-6)
-})
-
-
-
 # ── message ───────────────────────────────────────────────────────────────────
 
 test_that("calc_erosion_risk emits ERI computation message", {
@@ -325,19 +278,27 @@ test_that("custom map_title runs without error", {
   ls <- make_raster(seq(1, 9))
   c  <- make_raster(seq(0.1, 0.9, length.out = 9))
   expect_no_error(
-    calc_erosion_risk(r, ls, c, plot = FALSE,
-                      map_title = "Custom Title")
+    calc_erosion_risk(r, ls, c, plot = FALSE, map_title = "Custom Title")
   )
 })
 
-test_that("figure_caption and data_source run without error", {
+test_that("figure_caption runs without error", {
   r  <- make_raster(seq(1, 9))
   ls <- make_raster(seq(1, 9))
   c  <- make_raster(seq(0.1, 0.9, length.out = 9))
   expect_no_error(
     calc_erosion_risk(r, ls, c, plot = FALSE,
-                      figure_caption = "Figure 1: Test",
-                      data_source    = "Source: Synthetic data")
+                      figure_caption = "Figure 1: Test")
+  )
+})
+
+test_that("data_source runs without error", {
+  r  <- make_raster(seq(1, 9))
+  ls <- make_raster(seq(1, 9))
+  c  <- make_raster(seq(0.1, 0.9, length.out = 9))
+  expect_no_error(
+    calc_erosion_risk(r, ls, c, plot = FALSE,
+                      data_source = "Source: Synthetic data")
   )
 })
 
@@ -345,11 +306,9 @@ test_that("figure_caption and data_source run without error", {
 
 # ── plot = FALSE always returns NULL map ──────────────────────────────────────
 
-test_that("plot = FALSE returns NULL map regardless of dem", {
-  r   <- make_raster(seq(1, 9))
-  ls  <- make_raster(seq(1, 9))
-  c   <- make_raster(seq(0.1, 0.9, length.out = 9))
-  dem <- make_raster(seq(100, 900, length.out = 9))
-  expect_null(calc_erosion_risk(r, ls, c, dem = dem,  plot = FALSE)$map)
-  expect_null(calc_erosion_risk(r, ls, c, dem = NULL, plot = FALSE)$map)
+test_that("plot = FALSE returns NULL map", {
+  r  <- make_raster(seq(1, 9))
+  ls <- make_raster(seq(1, 9))
+  c  <- make_raster(seq(0.1, 0.9, length.out = 9))
+  expect_null(calc_erosion_risk(r, ls, c, plot = FALSE)$map)
 })
