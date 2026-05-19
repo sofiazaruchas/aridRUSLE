@@ -48,6 +48,21 @@ automatically: `terra`, `ggplot2`, `tidyterra`, `ggspatial`, `kgc`,
 devtools::install_github("sofiazaruchas/aridRUSLE")
 ```
 
+If `tidyterra` fails to load after installing aridRUSLE, update the
+following packages and restart RStudio:
+
+``` r
+
+install.packages(c("rlang", "vctrs", "dplyr", "tidyterra"))
+```
+
+Then restart RStudio and reload:
+
+``` r
+
+library(aridRUSLE)
+```
+
 ## Data Requirements
 
 The required input data are summarized in Table 1. The aggregation
