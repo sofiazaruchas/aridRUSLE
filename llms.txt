@@ -37,7 +37,8 @@ Asia, Australia, and South America without any manual formula lookup.
 ## Dependencies
 
 aridRUSLE requires the following R packages, which are installed
-automatically: `terra`, `ggplot2`, `tidyterra`, `ggspatial`, `kgc`
+automatically: `terra`, `ggplot2`, `tidyterra`, `ggspatial`, `kgc`,
+`dplyr (>= 1.2.0)`
 
 ## Installation
 
