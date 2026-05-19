@@ -15,7 +15,7 @@ limitations in semi-arid research areas.
 
 To ensure accurate C-factor estimation, the package includes a dedicated
 water masking step. Open water surfaces produce misleading NDVI values that
-would otherwise bias the vegetation cover factor — applying
+would otherwise bias the vegetation cover factor, applying
 `apply_water_mask()` before `calc_c_factor()` removes these pixels and
 prevents them from propagating into the final erosion risk index.
 
@@ -27,6 +27,7 @@ the study area using a Köppen-like climate zone classification, or can be
 set manually. This makes the package readily applicable across the
 Mediterranean, Sahel, Arabian Peninsula, Central Asia, Australia, and
 South America without any manual formula lookup.
+
 ## Dependencies
 aridRUSLE requires the following R packages, which are installed automatically:
 `terra`, `ggplot2`, `tidyterra`, `ggspatial`, `kgc`
