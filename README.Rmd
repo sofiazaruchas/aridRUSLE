@@ -43,10 +43,10 @@ depends on the climate zone of the study area and should correspond to the
 respective rainy season (see Table 2). The package automatically prints the 
 recommended period at each call of `calc_r_factor()`.
 
-<img src="man/figures/table_requirements.png" width="600"/>
+<img src="man/figures/table_requirements.png" width="100%"/>
 
 ## Workflow
-<img src="man/figures/workflow.png" width="600"/>
+<img src="man/figures/workflow.png" width="100%"/>
 
 ## Water mask to mask out lakes
 `apply_water_mask()` computes the Normalized Difference Water Index (NDWI)
@@ -75,7 +75,7 @@ ndvi_masked <- apply_water_mask(
                )
 ```
 
-<img src="man/figures/water_mask_final.png" width="600"/>
+<img src="man/figures/water_mask_final.png" width="100%"/>
 
 
 ## Region-specific Rainfall erosivity calculation (R-factor)
@@ -102,7 +102,7 @@ r_factor <- calc_r_factor(
             )
 ```
 
-<img src="man/figures/r_factor_final.png" width="600"/>
+<img src="man/figures/r_factor_final.png" width="100%"/>
 
 ## Calculation of topographic influence on erosion (LS-factor)
 `calc_ls_factor()` computes the RUSLE topographic LS-factor from a digital
@@ -122,7 +122,7 @@ ls_factor <- calc_ls_factor(
              )
 ```
 
-<img src="man/figures/ls_factor_final.png" width="600"/>
+<img src="man/figures/ls_factor_final.png" width="100%"/>
 
 ## Calculation of vegetation cover influence of erosion (C-factor)
 `calc_c_factor()` computes the RUSLE vegetation cover factor (C-factor) from
@@ -146,7 +146,7 @@ c_factor <- calc_c_factor(
             )
 ```
 
-<img src="man/figures/c_factor_final.png" width="600"/>
+<img src="man/figures/c_factor_final.png" width="100%"/>
 
 ## Erosion risk map
 `calc_erosion_risk()` combines the R, LS, and C factors into a dimensionless
@@ -170,4 +170,4 @@ result <- calc_erosion_risk(
           )
 ```
 
-<img src="man/figures/eri_final.png" width="600"/>
+<img src="man/figures/eri_final.png" width="100%"/>
