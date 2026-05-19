@@ -48,6 +48,28 @@ recommended period at each call of `calc_r_factor()`.
 ## Workflow
 <img src="man/figures/workflow.png" width="100%"/>
 
+## Climate Zone Detection
+
+Before selecting and downloading input data, it is recommended to first 
+determine the climate zone of the study area. The zone controls which 
+R-factor formula is applied and defines the correct aggregation period 
+for precipitation, NDVI, and satellite imagery (Table 1).
+
+```r
+# Step 1: Get an overview of all supported climate zones
+list_climate_zones()
+
+# Step 2: Detect the climate zone from coordinates
+get_climate_zone(lat = -30.5, lon = -70.2)
+
+# Step 3: Get the recommended data period for that zone
+get_season_recommendation("winter_rain_south")
+```
+
+The output of `get_season_recommendation()` directly defines the time 
+window for which precipitation (CHIRPS), NDVI, and satellite imagery 
+(Sentinel-2) should be acquired and aggregated.
+
 ## Water mask to mask out lakes
 `apply_water_mask()` computes the Normalized Difference Water Index (NDWI)
 internally from a multi-band satellite image and uses it to mask open water
