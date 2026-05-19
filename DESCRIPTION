@@ -2,8 +2,11 @@ Package: aridRUSLE
 Title: Soil Erosion Risk Analysis for Semi-Arid Regions
 Version: 0.0.0.9000
 Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"))
-Description: What the package does (one paragraph).
+    person("Sofia", "Zaruchas", , "sofia.zaruchas@stud-mail.uni-wuerzburg.de", role = c("aut", "cre"))
+Description:Implements a modified RUSLE approach for soil erosion risk 
+    analysis in semi-arid and arid regions using rainfall erosivity (R), 
+    topographic influence (LS), and vegetation cover (C) derived from 
+    freely available remote sensing and climate data.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
