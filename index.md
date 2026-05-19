@@ -56,9 +56,14 @@ automatically prints the recommended period at each call of
 
 ![](reference/figures/table_requirements.png)
 
+Table 1 – Required input datasets. Highlighted fields are climate-zone
+dependent.
+
 ## Workflow
 
 ![](reference/figures/workflow.png)
+
+Figure 1 – aridRUSLE workflow.
 
 ## Climate Zone Detection
 
@@ -117,6 +122,9 @@ ndvi_masked <- apply_water_mask(
 
 ![](reference/figures/water_mask_final.png)
 
+Figure 2 – Water mask applied to the study area (threshold = 0.3, smooth
+3x3, min 1 ha).
+
 ## Region-specific Rainfall erosivity calculation (R-factor)
 
 [`calc_r_factor()`](https://sofiazaruchas.github.io/aridRUSLE/reference/calc_r_factor.md)
@@ -146,6 +154,9 @@ r_factor <- calc_r_factor(
 
 ![](reference/figures/r_factor_final.png)
 
+Figure 3 – R-factor map (Bonilla & Vidal, 2011). Zone:
+winter_rain_south.
+
 ## Calculation of topographic influence on erosion (LS-factor)
 
 [`calc_ls_factor()`](https://sofiazaruchas.github.io/aridRUSLE/reference/calc_ls_factor.md)
@@ -168,6 +179,8 @@ ls_factor <- calc_ls_factor(
 ```
 
 ![](reference/figures/ls_factor_final.png)
+
+Figure 4 – LS-factor map (Moore & Burch, 1986).
 
 ## Calculation of vegetation cover influence of erosion (C-factor)
 
@@ -198,6 +211,8 @@ c_factor <- calc_c_factor(
 
 ![](reference/figures/c_factor_final.png)
 
+Figure 5 – C-factor map (Mahgoub et al., 2012).
+
 ## Erosion risk map
 
 [`calc_erosion_risk()`](https://sofiazaruchas.github.io/aridRUSLE/reference/calc_erosion_risk.md)
@@ -224,3 +239,5 @@ result <- calc_erosion_risk(
 ```
 
 ![](reference/figures/eri_final.png)
+
+Figure 6 – Soil Erosion Risk Index (ERI = R × LS × C).
