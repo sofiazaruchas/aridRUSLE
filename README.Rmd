@@ -1,5 +1,7 @@
 # aridRUSLE
-aridRUSLE estimates soil erosion risk in semi-arid and arid regions worldwide by computing the three remotely-sensed RUSLE factors R, LS, and C from freely available satellite and climate data
+aridRUSLE computes the three core RUSLE factors R, LS, and C from satellite
+and climate datasets to estimate soil erosion risk in semi-arid and arid
+regions worldwide.
 
 ## Overview
 **aridRUSLE** is an R package implementing a modified RUSLE (Revised Universal
