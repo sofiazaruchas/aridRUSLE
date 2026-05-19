@@ -8,7 +8,7 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
-URL: https://github.com/sofiazaruchas/aridRUSLE
+URL: https://github.com/sofiazaruchas/aridRUSLE, https://sofiazaruchas.github.io/aridRUSLE/
 BugReports: https://github.com/sofiazaruchas/aridRUSLE/issues
 Imports: 
     kgc,
