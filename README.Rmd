@@ -38,13 +38,4 @@ depends on the climate zone of the study area and should correspond to the
 respective rainy season (see Table 2). The package automatically prints the 
 recommended period at each call of `calc_r_factor()`.
 
-
-## Data Requirements
-
-The required input data are summarized in Table 1. The aggregation period 
-for precipitation, NDVI, and satellite imagery (used for NDWI computation) 
-depends on the climate zone of the study area and should correspond to the 
-respective rainy season (see Table 2). The package automatically prints the 
-recommended period at each call of `calc_r_factor()`.
-
 ![Table 1](man/figures/table_requirements.png)
