@@ -230,3 +230,31 @@ result <- calc_erosion_risk(
   <img src="man/figures/eri_final.png" width="100%"/>
   <figcaption>Figure 6 – Soil Erosion Risk Index (ERI = R × LS × C)</figcaption>
 </figure>
+
+## References
+
+Arnoldus, H.M.J. (1980). An approximation of the rainfall factor in the
+Universal Soil Loss Equation. In: De Boodt & Gabriels (eds.), *Assessment
+of Erosion*. Wiley, 127-132.
+
+Bonilla, C.A., & Vidal, K.L. (2011). Rainfall erosivity in central Chile.
+*Journal of Hydrology*, 410(1-2), 126-133.
+
+Mahgoub, M. et al. (2012). Estimation of soil loss from semi-arid area
+using RUSLE model and remote sensing. *CATENA*, 100, 126-133.
+
+McFeeters, S.K. (1996). The use of the Normalised Difference Water Index
+(NDWI) in the delineation of open water features. *International Journal
+of Remote Sensing*, 17(7), 1425-1432.
+
+Moore, I.D., & Burch, G.J. (1986). Physical basis of the length-slope
+factor in the Universal Soil Loss Equation. *Soil Science Society of
+America Journal*, 50(5), 1294-1298.
+
+Peel, M.C., Finlayson, B.L., & McMahon, T.A. (2007). Updated world map
+of the Koeppen-Geiger climate classification. *Hydrology and Earth System
+Sciences*, 11, 1633-1644.
+
+Yu, B., & Rosewell, C.J. (1996). A robust estimator of the R-factor for
+the Universal Soil Loss Equation. *Transactions of the ASAE*, 39(2),
+559-561.
