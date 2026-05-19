@@ -43,10 +43,16 @@ depends on the climate zone of the study area and should correspond to the
 respective rainy season (see Table 2). The package automatically prints the 
 recommended period at each call of `calc_r_factor()`.
 
+</figure>
 <img src="man/figures/table_requirements.png" width="100%"/>
+<figcaption>Table 1 – Required input datasets. Highlighted fields are climate-zone dependent.</figcaption>
+</figure>
 
 ## Workflow
-<img src="man/figures/workflow.png" width="100%"/>
+<figure>
+  <img src="man/figures/workflow.png" width="100%"/>
+  <figcaption>Figure 1 – aridRUSLE workflow.</figcaption>
+</figure>
 
 ## Climate Zone Detection
 
@@ -97,7 +103,10 @@ ndvi_masked <- apply_water_mask(
                )
 ```
 
-<img src="man/figures/water_mask_final.png" width="100%"/>
+<figure>
+  <img src="man/figures/water_mask_final.png" width="100%"/>
+  <figcaption>Figure 2 – Water mask applied to the study area (threshold = 0.3, smooth 3x3, min 1 ha).</figcaption>
+</figure>
 
 
 ## Region-specific Rainfall erosivity calculation (R-factor)
@@ -124,7 +133,10 @@ r_factor <- calc_r_factor(
             )
 ```
 
-<img src="man/figures/r_factor_final.png" width="100%"/>
+<figure>
+  <img src="man/figures/r_factor_final.png" width="100%"/>
+  <figcaption>Figure 3 – R-factor map (Bonilla & Vidal, 2011). Zone: winter_rain_south.</figcaption>
+</figure>
 
 ## Calculation of topographic influence on erosion (LS-factor)
 `calc_ls_factor()` computes the RUSLE topographic LS-factor from a digital
@@ -144,7 +156,10 @@ ls_factor <- calc_ls_factor(
              )
 ```
 
-<img src="man/figures/ls_factor_final.png" width="100%"/>
+<figure>
+  <img src="man/figures/ls_factor_final.png" width="100%"/>
+  <figcaption>Figure 4 – LS-factor map (Moore & Burch, 1986).</figcaption>
+</figure>
 
 ## Calculation of vegetation cover influence of erosion (C-factor)
 `calc_c_factor()` computes the RUSLE vegetation cover factor (C-factor) from
@@ -168,7 +183,10 @@ c_factor <- calc_c_factor(
             )
 ```
 
-<img src="man/figures/c_factor_final.png" width="100%"/>
+<figure>
+  <img src="man/figures/c_factor_final.png" width="100%"/>
+  <figcaption>Figure 5 – C-factor map (Mahgoub et al., 2012).</figcaption>
+</figure>
 
 ## Erosion risk map
 `calc_erosion_risk()` combines the R, LS, and C factors into a dimensionless
@@ -192,4 +210,7 @@ result <- calc_erosion_risk(
           )
 ```
 
-<img src="man/figures/eri_final.png" width="100%"/>
+<figure>
+  <img src="man/figures/eri_final.png" width="100%"/>
+  <figcaption>Figure 6 – Soil Erosion Risk Index (ERI = R × LS × C).</figcaption>
+</figure>
